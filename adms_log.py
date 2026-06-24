@@ -27,8 +27,12 @@ from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 import json
 import os
+import sys
 
-PORT = 5000
+# Port priority: command-line arg  >  PORT env var  >  default 5000.
+#   python3 adms_log.py 80        -> listen on port 80 (needs sudo)
+#   PORT=80 python3 adms_log.py   -> same via env var
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 5000))
 
 # Server timezone offset in hours, sent to the device in the init handshake.
 # Asia/Kolkata = 5.5
