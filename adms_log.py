@@ -1,14 +1,40 @@
-# test_biometric.py
+#!/usr/bin/env python3
+"""
+Standalone ZKTeco / AIFACE ADMS (push protocol) server.
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse
+Listens for the iclock push protocol used by ZKTeco-style biometric devices
+(AIFACE-MAGNUM, ZMM510, etc.) and records attendance punches.
+
+Endpoints implemented:
+  GET  /iclock/cdata        ?SN=..&options=all   -> device init handshake (CRITICAL)
+  POST /iclock/cdata        ?SN=..&table=ATTLOG  -> attendance punch upload
+  GET  /iclock/getrequest   ?SN=..               -> command poll (returns OK)
+  POST /iclock/devicecmd                          -> command ack (returns OK)
+  GET  /dashboard                                 -> HTML attendance dashboard
+  GET  /api/attendance                            -> JSON of all attendance
+
+Why the handshake matters:
+  On startup the device calls GET /iclock/cdata?options=all. The server MUST
+  reply with a "GET OPTION" config block containing Realtime=1 and
+  ATTLOGStamp=9999, otherwise the device will NOT push attendance logs.
+  Returning 404 here is the usual cause of "device active but no punches".
+
+Stdlib only -- no pip install required. Run with: python3 adms_log.py
+"""
+
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 import json
 import os
 
 PORT = 5000
 
-# EMPLOYEE MASTER
+# Server timezone offset in hours, sent to the device in the init handshake.
+# Asia/Kolkata = 5.5
+TIMEZONE_OFFSET = 5.5
+
+# EMPLOYEE MASTER (device PIN -> name)
 employees = {
     "1": "EMAD",
     "2": "NIKITA",
@@ -45,222 +71,241 @@ employees = {
     "33": "Kashif",
     "34": "Chinmay",
     "35": "Atif",
-    "36": "Sudhanshu"
-}   
+    "36": "Sudhanshu",
+}
 
 attendance = {}
 
 LOG_FILE = "attendance_logs.json"
 
+
 def load_logs():
-global attendance
-if os.path.exists(LOG_FILE):
-with open(LOG_FILE, "r") as f:
-attendance = json.load(f)
+    global attendance
+    if os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                attendance = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print("WARN: could not load log file:", e)
+            attendance = {}
+
 
 def save_logs():
-with open(LOG_FILE, "w") as f:
-json.dump(attendance, f, indent=4)
+    with open(LOG_FILE, "w", encoding="utf-8") as f:
+        json.dump(attendance, f, indent=4)
+
 
 load_logs()
 
+
+def record_punch(emp_id, date, punch_time):
+    """Store one punch. First punch of the day = check_in, later ones move check_out."""
+    emp_name = employees.get(emp_id, "Unknown")
+    key = f"{emp_id}_{date}"
+
+    if key not in attendance:
+        attendance[key] = {
+            "employee_id": emp_id,
+            "employee_name": emp_name,
+            "date": date,
+            "check_in": punch_time,
+            "check_out": "",
+            "last_punch": punch_time,
+            "punch_count": 1,
+        }
+    else:
+        attendance[key]["check_out"] = punch_time
+        attendance[key]["last_punch"] = punch_time
+        attendance[key]["punch_count"] += 1
+
+    print(f"  PUNCH  {emp_name:<16} | {date} | {punch_time}")
+
+
 class MyServer(BaseHTTPRequestHandler):
 
-```
-def do_GET(self):
+    # ── helpers ──────────────────────────────────────────────────────────────
 
-    path = urlparse(self.path).path
-
-    if path == "/dashboard":
-        return self.dashboard()
-
-    if path.startswith("/api/attendance"):
-        return self.api_attendance()
-
-    if path in ["/iclock/getrequest", "/iclock/getrequest.aspx"]:
-        self.send_response(200)
+    def _send(self, body, status=200, content_type="text/plain"):
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache, no-store")
         self.end_headers()
-        self.wfile.write(b"OK")
-        return
+        self.wfile.write(body)
 
-    self.send_response(404)
-    self.end_headers()
+    def _device_init_response(self):
+        """The GET OPTION block that instructs the device to push in real time."""
+        lines = [
+            "GET OPTION FROM: %s" % self._query().get("SN", [""])[0],
+            "Stamp=9999",
+            "OpStamp=9999",
+            "ErrorDelay=30",
+            "Delay=10",
+            "TransTimes=00:00;14:05",
+            "TransInterval=1",
+            "TransFlag=TransData AttLog OpLog AttPhoto EnrollUser ChgUser EnrollFP",
+            "TimeZone=%g" % TIMEZONE_OFFSET,
+            "Realtime=1",
+            "Encrypt=None",
+            "ATTLOGStamp=9999",
+            "OPERLOGStamp=9999",
+            "ATTPHOTOStamp=9999",
+            "",
+        ]
+        return "\r\n".join(lines)
 
-def do_POST(self):
+    def _query(self):
+        return parse_qs(urlparse(self.path).query)
 
-    path = urlparse(self.path).path
+    # ── GET ──────────────────────────────────────────────────────────────────
 
-    if path not in ["/iclock/cdata", "/iclock/cdata.aspx"]:
-        self.send_response(404)
-        self.end_headers()
-        return
+    def do_GET(self):
+        path = urlparse(self.path).path
+        query = self._query()
 
-    content_length = int(self.headers.get("Content-Length", 0))
-    body = self.rfile.read(content_length).decode(
-        "utf-8", errors="ignore"
-    )
+        if path == "/dashboard":
+            return self._send(self.dashboard_html(), content_type="text/html")
 
-    print("\n========== ATTLOG RECEIVED ==========\n")
-    print(body)
-
-    for line in body.splitlines():
-
-        line = line.strip()
-
-        if not line:
-            continue
-
-        try:
-
-            parts = line.split()
-
-            emp_id = parts[0]
-            date = parts[1]
-            punch_time = parts[2]
-
-            emp_name = employees.get(emp_id, "Unknown")
-
-            key = f"{emp_id}_{date}"
-
-            if key not in attendance:
-
-                attendance[key] = {
-                    "employee_id": emp_id,
-                    "employee_name": emp_name,
-                    "date": date,
-                    "check_in": punch_time,
-                    "check_out": "",
-                    "last_punch": punch_time,
-                    "punch_count": 1,
-                }
-
-            else:
-
-                attendance[key]["check_out"] = punch_time
-                attendance[key]["last_punch"] = punch_time
-                attendance[key]["punch_count"] += 1
-
-            save_logs()
-
-            print(
-                f"{emp_name} | {date} | {punch_time}"
+        if path.startswith("/api/attendance"):
+            return self._send(
+                json.dumps(attendance, indent=4), content_type="application/json"
             )
 
-        except Exception as e:
-            print("ERROR:", e)
+        # Device initialisation handshake -- THIS is what enables punch pushing.
+        if path in ("/iclock/cdata", "/iclock/cdata.aspx"):
+            if query.get("options", [""])[0] == "all":
+                sn = query.get("SN", ["?"])[0]
+                print(f"\n[INIT] device handshake SN={sn} -> sending GET OPTION")
+                return self._send(self._device_init_response())
+            # Some firmware probes cdata with GET and no options; just ack.
+            return self._send("OK")
 
-    self.send_response(200)
-    self.end_headers()
-    self.wfile.write(b"OK")
+        # Command poll
+        if path in ("/iclock/getrequest", "/iclock/getrequest.aspx"):
+            return self._send("OK")
 
-def api_attendance(self):
+        self._send("Not Found", status=404)
 
-    self.send_response(200)
-    self.send_header(
-        "Content-Type",
-        "application/json"
-    )
-    self.end_headers()
+    # ── POST ───────────────────────────────────────────────────────────────────
 
-    self.wfile.write(
-        json.dumps(
-            attendance,
-            indent=4
-        ).encode()
-    )
+    def do_POST(self):
+        path = urlparse(self.path).path
+        query = self._query()
 
-def dashboard(self):
+        # Command acknowledgement
+        if path in ("/iclock/devicecmd", "/iclock/devicecmd.aspx"):
+            return self._send("OK")
 
-    rows = ""
+        if path not in ("/iclock/cdata", "/iclock/cdata.aspx"):
+            return self._send("Not Found", status=404)
 
-    for item in attendance.values():
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length).decode("utf-8", errors="ignore")
 
-        rows += f"""
-        <tr>
-            <td>{item['employee_id']}</td>
-            <td>{item['employee_name']}</td>
-            <td>{item['date']}</td>
-            <td>{item['check_in']}</td>
-            <td>{item['check_out'] or '-'}</td>
-            <td>{item['punch_count']}</td>
-        </tr>
+        table = query.get("table", [""])[0].upper()
+        sn = query.get("SN", ["?"])[0]
+
+        print(f"\n===== CDATA POST  SN={sn}  table={table or '(none)'} =====")
+        if body.strip():
+            print(body)
+
+        # Only ATTLOG rows are punches. OPERLOG / USERINFO etc. are acked, not stored.
+        if table and table != "ATTLOG":
+            print(f"[skip] table={table} acknowledged, not stored")
+            return self._send("OK")
+
+        self._parse_attlog(body)
+        save_logs()
+        self._send("OK")
+
+    def _parse_attlog(self, body):
         """
+        ZKTeco ATTLOG rows are tab-separated:
+            PIN <TAB> YYYY-MM-DD HH:MM:SS <TAB> status <TAB> verify <TAB> ...
+        The datetime field itself contains a space, so we split on tabs first
+        and fall back to whitespace splitting for older/space-delimited firmware.
+        """
+        for line in body.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                if "\t" in line:
+                    parts = line.split("\t")
+                    emp_id = parts[0].strip()
+                    dt = parts[1].strip()  # "YYYY-MM-DD HH:MM:SS"
+                    date, _, punch_time = dt.partition(" ")
+                else:
+                    parts = line.split()
+                    emp_id = parts[0]
+                    date = parts[1]
+                    punch_time = parts[2] if len(parts) > 2 else ""
 
-    html = f"""
-    <html>
-    <head>
-        <title>Attendance Dashboard</title>
-        <meta http-equiv="refresh" content="10">
-        <style>
-        body {{
-            font-family: Arial;
-            margin:40px;
-        }}
-        table {{
-            width:100%;
-            border-collapse:collapse;
-        }}
-        th,td {{
-            border:1px solid #ddd;
-            padding:10px;
-        }}
-        th {{
-            background:#0d6efd;
-            color:white;
-        }}
-        </style>
-    </head>
-    <body>
+                if not emp_id or not date:
+                    print("  [skip] unparseable line:", repr(line))
+                    continue
 
+                record_punch(emp_id, date, punch_time)
+            except (IndexError, ValueError) as e:
+                print("  ERROR parsing line:", repr(line), "->", e)
+
+    # ── dashboard ──────────────────────────────────────────────────────────────
+
+    def dashboard_html(self):
+        rows = ""
+        for item in attendance.values():
+            rows += f"""
+            <tr>
+                <td>{item['employee_id']}</td>
+                <td>{item['employee_name']}</td>
+                <td>{item['date']}</td>
+                <td>{item['check_in']}</td>
+                <td>{item['check_out'] or '-'}</td>
+                <td>{item['punch_count']}</td>
+            </tr>"""
+
+        return f"""<html>
+<head>
+    <title>Attendance Dashboard</title>
+    <meta http-equiv="refresh" content="10">
+    <style>
+    body {{ font-family: Arial; margin: 40px; }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ border: 1px solid #ddd; padding: 10px; }}
+    th {{ background: #0d6efd; color: white; }}
+    </style>
+</head>
+<body>
     <h2>Biometric Attendance Dashboard</h2>
-
-    <p>
-        Last Refresh:
-        {datetime.now()}
-    </p>
-
+    <p>Last Refresh: {datetime.now()}</p>
     <table>
-    <tr>
-        <th>Emp ID</th>
-        <th>Name</th>
-        <th>Date</th>
-        <th>Check In</th>
-        <th>Check Out</th>
-        <th>Punches</th>
-    </tr>
-
-    {rows}
-
+        <tr>
+            <th>Emp ID</th><th>Name</th><th>Date</th>
+            <th>Check In</th><th>Check Out</th><th>Punches</th>
+        </tr>
+        {rows}
     </table>
+</body>
+</html>"""
 
-    </body>
-    </html>
-    """
+    # Silence default per-request logging (we print our own).
+    def log_message(self, fmt, *args):
+        return
 
-    self.send_response(200)
-    self.send_header(
-        "Content-Type",
-        "text/html"
-    )
-    self.end_headers()
 
-    self.wfile.write(html.encode())
+def main():
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), MyServer)
+    print(f"ADMS Server running on port {PORT}")
+    print(f"Dashboard:  http://<SERVER_IP>:{PORT}/dashboard")
+    print(f"Device URL: http://<SERVER_IP>:{PORT}/iclock/cdata")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down.")
+        server.shutdown()
 
-def log_message(self, format, *args):
-    return
-```
 
-server = HTTPServer(
-("0.0.0.0", PORT),
-MyServer
-)
-
-print(
-f"ADMS Server Running on Port {PORT}"
-)
-
-print(
-f"Dashboard: http://SERVER_IP:{PORT}/dashboard"
-)
-
-server.serve_forever()
+if __name__ == "__main__":
+    main()
