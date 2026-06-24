@@ -1,0 +1,10 @@
+# Image files (e.g. WhatsApp exports)
+*.jpeg
+*.jpg
+*.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
