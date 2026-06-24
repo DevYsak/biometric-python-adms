@@ -121,6 +121,164 @@ def record_punch(emp_id, date, punch_time):
     print(f"  PUNCH  {emp_name:<16} | {date} | {punch_time}")
 
 
+# Dashboard HTML template. Placeholders (__TOKEN__) are filled in dashboard_html().
+# Plain string (not an f-string) so CSS/JS braces stay literal.
+DASHBOARD_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biometric Attendance Dashboard</title>
+<meta http-equiv="refresh" content="15">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0f172a; color: #e2e8f0; padding: 28px;
+  }
+  .head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+  }
+  .head h1 { font-size: 22px; font-weight: 700; }
+  .head h1 span { color: #38bdf8; }
+  .head .meta { font-size: 13px; color: #94a3b8; text-align: right; }
+  .live { color: #34d399; font-weight: 600; }
+  .live::before {
+    content: ""; display: inline-block; width: 8px; height: 8px;
+    background: #34d399; border-radius: 50%; margin-right: 6px;
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: #1e293b; border-radius: 14px; padding: 20px;
+    border: 1px solid #334155; box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+  .card .label { font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+  .card .value { font-size: 30px; font-weight: 700; }
+  .card.emp .value { color: #38bdf8; }
+  .card.present .value { color: #34d399; }
+  .card.absent .value { color: #f87171; }
+  .card.punch .value { color: #fbbf24; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .panel {
+    background: #1e293b; border-radius: 14px; padding: 20px;
+    border: 1px solid #334155;
+  }
+  .panel h2 { font-size: 15px; margin-bottom: 14px; color: #cbd5e1; }
+  .chart-wrap { position: relative; height: 260px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #334155; }
+  th { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:hover { background: #243349; }
+  td.id { color: #64748b; }
+  td.name { font-weight: 600; color: #f1f5f9; }
+  tr.is-absent td.name { color: #94a3b8; font-weight: 500; }
+  .empty { text-align: center; color: #64748b; padding: 26px; }
+  .badge {
+    background: #334155; color: #e2e8f0; padding: 2px 10px;
+    border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .pill { padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .pill-in { background: rgba(52,211,153,.15); color: #34d399; }
+  .pill-out { background: rgba(248,113,113,.12); color: #f87171; }
+  .scroll { max-height: 460px; overflow-y: auto; }
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Biometric <span>Attendance</span> Dashboard</h1>
+    <div class="meta">
+      <div class="live">LIVE</div>
+      <div>Date: __TODAY__</div>
+      <div>Last refresh: __REFRESHED__</div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card emp"><div class="label">Total Employees</div><div class="value">__TOTAL_EMP__</div></div>
+    <div class="card present"><div class="label">Present Today</div><div class="value">__PRESENT__</div></div>
+    <div class="card absent"><div class="label">Absent Today</div><div class="value">__ABSENT__</div></div>
+    <div class="card punch"><div class="label">Punches Today</div><div class="value">__PUNCHES__</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Attendance Overview</h2>
+      <div class="chart-wrap"><canvas id="donut"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Punches per Employee (Today)</h2>
+      <div class="chart-wrap"><canvas id="bar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:24px">
+    <h2>Today's Attendance</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Name</th><th>Check In</th><th>Check Out</th>
+          <th>Last Punch</th><th>Punches</th><th>Status</th>
+        </tr></thead>
+        <tbody>__TODAY_ROWS__</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Employee List</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Name</th><th>Check In</th><th>Last Punch</th><th>Status</th>
+        </tr></thead>
+        <tbody>__ROSTER__</tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  const DATA = __CHART_DATA__;
+  Chart.defaults.color = "#94a3b8";
+  Chart.defaults.borderColor = "#334155";
+
+  new Chart(document.getElementById("donut"), {
+    type: "doughnut",
+    data: {
+      labels: ["Present", "Absent"],
+      datasets: [{ data: [DATA.present, DATA.absent],
+        backgroundColor: ["#34d399", "#f87171"], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" } }, cutout: "62%" }
+  });
+
+  new Chart(document.getElementById("bar"), {
+    type: "bar",
+    data: {
+      labels: DATA.labels,
+      datasets: [{ label: "Punches", data: DATA.counts,
+        backgroundColor: "#38bdf8", borderRadius: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+</script>
+</body>
+</html>"""
+
+
 class MyServer(BaseHTTPRequestHandler):
 
     # ── helpers ──────────────────────────────────────────────────────────────
@@ -257,41 +415,85 @@ class MyServer(BaseHTTPRequestHandler):
     # ── dashboard ──────────────────────────────────────────────────────────────
 
     def dashboard_html(self):
-        rows = ""
-        for item in attendance.values():
-            rows += f"""
-            <tr>
-                <td>{item['employee_id']}</td>
-                <td>{item['employee_name']}</td>
-                <td>{item['date']}</td>
-                <td>{item['check_in']}</td>
-                <td>{item['check_out'] or '-'}</td>
-                <td>{item['punch_count']}</td>
-            </tr>"""
+        today = datetime.now().strftime("%Y-%m-%d")
 
-        return f"""<html>
-<head>
-    <title>Attendance Dashboard</title>
-    <meta http-equiv="refresh" content="10">
-    <style>
-    body {{ font-family: Arial; margin: 40px; }}
-    table {{ width: 100%; border-collapse: collapse; }}
-    th, td {{ border: 1px solid #ddd; padding: 10px; }}
-    th {{ background: #0d6efd; color: white; }}
-    </style>
-</head>
-<body>
-    <h2>Biometric Attendance Dashboard</h2>
-    <p>Last Refresh: {datetime.now()}</p>
-    <table>
-        <tr>
-            <th>Emp ID</th><th>Name</th><th>Date</th>
-            <th>Check In</th><th>Check Out</th><th>Punches</th>
-        </tr>
-        {rows}
-    </table>
-</body>
-</html>"""
+        records = list(attendance.values())
+        today_records = [r for r in records if r["date"] == today]
+
+        total_employees = len(employees)
+        present_ids = {r["employee_id"] for r in today_records}
+        present_today = len(present_ids)
+        absent_today = max(total_employees - present_today, 0)
+        punches_today = sum(r["punch_count"] for r in today_records)
+
+        # ── today's attendance rows (sorted by check-in) ─────────────────────
+        today_sorted = sorted(today_records, key=lambda r: r["check_in"])
+        if today_sorted:
+            today_rows = ""
+            for r in today_sorted:
+                out = r["check_out"] or "&mdash;"
+                today_rows += (
+                    "<tr>"
+                    f"<td class='id'>{r['employee_id']}</td>"
+                    f"<td class='name'>{r['employee_name']}</td>"
+                    f"<td>{r['check_in']}</td>"
+                    f"<td>{out}</td>"
+                    f"<td>{r['last_punch']}</td>"
+                    f"<td><span class='badge'>{r['punch_count']}</span></td>"
+                    "<td><span class='pill pill-in'>Present</span></td>"
+                    "</tr>"
+                )
+        else:
+            today_rows = ("<tr><td colspan='7' class='empty'>"
+                          "No punches recorded today yet.</td></tr>")
+
+        # ── full employee roster (present / absent) ──────────────────────────
+        roster = ""
+        for emp_id, name in sorted(employees.items(), key=lambda kv: int(kv[0])):
+            rec = next((r for r in today_records if r["employee_id"] == emp_id), None)
+            if rec:
+                roster += (
+                    "<tr>"
+                    f"<td class='id'>{emp_id}</td>"
+                    f"<td class='name'>{name}</td>"
+                    f"<td>{rec['check_in']}</td>"
+                    f"<td>{rec['last_punch']}</td>"
+                    "<td><span class='pill pill-in'>Present</span></td>"
+                    "</tr>"
+                )
+            else:
+                roster += (
+                    "<tr class='is-absent'>"
+                    f"<td class='id'>{emp_id}</td>"
+                    f"<td class='name'>{name}</td>"
+                    "<td>&mdash;</td><td>&mdash;</td>"
+                    "<td><span class='pill pill-out'>Absent</span></td>"
+                    "</tr>"
+                )
+
+        chart = json.dumps({
+            "present": present_today,
+            "absent": absent_today,
+            "labels": [r["employee_name"] for r in today_sorted],
+            "counts": [r["punch_count"] for r in today_sorted],
+        })
+
+        refreshed = datetime.now().strftime("%d %b %Y, %H:%M:%S")
+
+        html = DASHBOARD_TEMPLATE
+        for token, value in {
+            "__TODAY__": today,
+            "__REFRESHED__": refreshed,
+            "__TOTAL_EMP__": str(total_employees),
+            "__PRESENT__": str(present_today),
+            "__ABSENT__": str(absent_today),
+            "__PUNCHES__": str(punches_today),
+            "__TODAY_ROWS__": today_rows,
+            "__ROSTER__": roster,
+            "__CHART_DATA__": chart,
+        }.items():
+            html = html.replace(token, value)
+        return html
 
     # Silence default per-request logging (we print our own).
     def log_message(self, fmt, *args):
