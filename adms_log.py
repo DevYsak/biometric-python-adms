@@ -34,10 +34,6 @@ import sys
 #   PORT=80 python3 adms_log.py   -> same via env var
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 5000))
 
-# Server timezone offset in hours, sent to the device in the init handshake.
-# Asia/Kolkata = 5.5
-TIMEZONE_OFFSET = 5.5
-
 # EMPLOYEE MASTER (device PIN -> name)
 employees = {
     "1": "EMAD",
@@ -150,7 +146,10 @@ class MyServer(BaseHTTPRequestHandler):
             "TransTimes=00:00;14:05",
             "TransInterval=1",
             "TransFlag=TransData AttLog OpLog AttPhoto EnrollUser ChgUser EnrollFP",
-            "TimeZone=%g" % TIMEZONE_OFFSET,
+            # NOTE: TimeZone is intentionally NOT sent. Some ZKTeco devices reset
+            # their own clock to match it, and if the server OS runs on UTC the
+            # device time ends up wrong. Leaving it out means the server never
+            # touches the device clock -- set the device time manually on-device.
             "Realtime=1",
             "Encrypt=None",
             "ATTLOGStamp=9999",
