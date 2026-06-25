@@ -17,8 +17,9 @@ Stdlib only (http.server + sqlite3). Run:
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import closing
+from zoneinfo import ZoneInfo
 import json
 import os
 import sys
@@ -33,6 +34,22 @@ DASHBOARD_FILE = os.path.join(BASE_DIR, "dashboard.html")
 STANDARD_DAY_MIN = 480       # 8h; beyond this counts as overtime
 TIMELINE_START_H = 8         # dashboard timeline axis start (08:00)
 TIMELINE_END_H = 18          # dashboard timeline axis end   (18:00)
+
+# The device records punches in this local timezone. The server may run on UTC,
+# so we compute "now"/"today" in this zone to match the punch timestamps.
+TIMEZONE = "Asia/Kolkata"
+TZ_OFFSET_FALLBACK = timedelta(hours=5, minutes=30)   # used if tzdata is unavailable
+try:
+    _TZ = ZoneInfo(TIMEZONE)
+except Exception:
+    _TZ = None
+
+
+def now_local():
+    """Current wall-clock time in the device's timezone (independent of server TZ)."""
+    if _TZ:
+        return datetime.now(_TZ).replace(tzinfo=None)
+    return datetime.now(timezone.utc).replace(tzinfo=None) + TZ_OFFSET_FALLBACK
 
 # Device PIN -> employee name
 EMPLOYEES = {
@@ -158,7 +175,7 @@ def store_punch(emp_id, dt_str, device_sn="", raw_status=""):
                (emp_id, emp_name, punch_dt, punch_date, device_sn, raw_status, created_at)
                VALUES (?,?,?,?,?,?,?)""",
             (emp_id, emp_name, dt_str, punch_date, device_sn, raw_status,
-             datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+             now_local().strftime("%Y-%m-%d %H:%M:%S")),
         )
         new = cur.rowcount > 0
     if new:
@@ -196,7 +213,7 @@ def analyze_employee(rows, emp_id=None, is_today=True, now_dt=None):
     emp_id = emp_id if emp_id is not None else (rows[0]["emp_id"] if rows else None)
     meta = emp_meta(emp_id) if emp_id is not None else dict(DEFAULT_META)
     shift = SHIFTS.get(meta["shift"], SHIFTS["General"])
-    now_dt = now_dt or datetime.now()
+    now_dt = now_dt or now_local()
 
     times = [datetime.strptime(r["punch_dt"], "%Y-%m-%d %H:%M:%S") for r in rows]
     n = len(times)
@@ -266,7 +283,7 @@ def analyze_employee(rows, emp_id=None, is_today=True, now_dt=None):
 
 
 def build_dashboard(date_str):
-    now_dt = datetime.now()
+    now_dt = now_local()
     is_today = (date_str == now_dt.strftime("%Y-%m-%d"))
     with closing(db()) as conn:
         rows = conn.execute(
@@ -415,7 +432,7 @@ def build_dashboard(date_str):
 
 def employee_detail(emp_id, date_str):
     """Detailed record for the employee popup: today + weekly/monthly stats."""
-    now_dt = datetime.now()
+    now_dt = now_local()
     is_today = (date_str == now_dt.strftime("%Y-%m-%d"))
     d = datetime.strptime(date_str, "%Y-%m-%d")
     week_start = (d - timedelta(days=d.weekday())).strftime("%Y-%m-%d")
@@ -525,7 +542,7 @@ class MyServer(BaseHTTPRequestHandler):
 
     def _today(self):
         q = self._query()
-        return q.get("date", [datetime.now().strftime("%Y-%m-%d")])[0]
+        return q.get("date", [now_local().strftime("%Y-%m-%d")])[0]
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -550,7 +567,7 @@ class MyServer(BaseHTTPRequestHandler):
                     json.dumps({"ok": False, "error": "No device has connected yet."}),
                     status=400, content_type="application/json")
             start = q.get("from", ["2020-01-01"])[0]
-            end = q.get("to", [datetime.now().strftime("%Y-%m-%d")])[0]
+            end = q.get("to", [now_local().strftime("%Y-%m-%d")])[0]
             cid = queue_pull_attlog(sn, start, end)
             print(f"\n[PULL] queued ATTLOG re-import for SN={sn} "
                   f"({start} .. {end}), cmd C:{cid}")
@@ -568,7 +585,7 @@ class MyServer(BaseHTTPRequestHandler):
         if path == "/api/calendar":
             q = self._query()
             emp_id = q.get("emp", [""])[0]
-            month = q.get("month", [datetime.now().strftime("%Y-%m")])[0]
+            month = q.get("month", [now_local().strftime("%Y-%m")])[0]
             return self._send(json.dumps(calendar_data(emp_id, month)),
                               content_type="application/json")
 
