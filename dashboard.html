@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Biometric Attendance Dashboard</title>
+<title>HRMS Attendance Dashboard</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,51 +14,61 @@
 <style>
 :root{
   --bg:#0F172A; --card:#1E293B; --primary:#3B82F6; --success:#22C55E;
-  --danger:#EF4444; --warning:#F59E0B; --purple:#A855F7; --text:#F8FAFC;
-  --muted:#94A3B8; --border:rgba(255,255,255,.08); --radius:18px;
+  --danger:#EF4444; --warning:#F59E0B; --purple:#A855F7; --cyan:#22D3EE;
+  --text:#F8FAFC; --muted:#94A3B8; --border:rgba(255,255,255,.08); --radius:18px;
   --shadow:0 15px 35px rgba(0,0,0,.25);
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;padding:18px 22px 40px}
-.muted{color:var(--muted)}
-.card-x{
-  background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(255,255,255,0));
-  background-color:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(6px);
-  padding:18px 20px;height:100%;
-}
-.section-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.2px}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;padding:16px 20px 50px}
+.muted{color:var(--muted)} .small{font-size:12px}
+.card-x{background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(255,255,255,0));
+  background-color:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);backdrop-filter:blur(6px);padding:18px 20px;height:100%}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title i{color:var(--primary)}
 
-/* ── Navbar ── */
-.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+/* Navbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:14px}
-.brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
-  background:linear-gradient(135deg,var(--primary),var(--purple));font-size:20px;box-shadow:var(--shadow)}
-.brand h1{font-size:20px;font-weight:800;margin:0}
-.brand h1 span{color:var(--primary)}
-.topbar .meta{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--muted)}
+.brand .logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--primary),var(--purple));font-size:21px;box-shadow:var(--shadow)}
+.brand h1{font-size:20px;font-weight:800;margin:0}.brand h1 span{color:var(--primary)}
+.topbar .meta{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
 .topbar .meta b{color:var(--text)}
 .live{display:inline-flex;align-items:center;gap:7px;color:var(--success);font-weight:700;font-size:12px;
   border:1px solid rgba(34,197,94,.35);padding:5px 12px;border-radius:30px;background:rgba(34,197,94,.08)}
-.live .dot{width:9px;height:9px;border-radius:50%;background:var(--success);box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.5s infinite}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 9px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.btn-round{border-radius:10px;font-weight:600;font-size:13px;padding:5px 12px}
+.btn-blue{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.35)}
+.btn-green{background:rgba(34,197,94,.12);color:var(--success);border:1px solid rgba(34,197,94,.3)}
+input[type=date],select.flt{background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:10px;font-size:13px;padding:5px 10px}
+.bell{position:relative;cursor:pointer;color:var(--muted);font-size:18px}
+.bell .cnt{position:absolute;top:-6px;right:-8px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:0 5px}
+.notif-pop{position:absolute;right:0;top:30px;width:320px;max-height:380px;overflow:auto;background:var(--card);
+  border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:8px;z-index:50;display:none}
+.notif-pop.show{display:block}
+.notif-i{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:10px;font-size:13px}
+.notif-i:hover{background:rgba(148,163,184,.06)}
+.notif-i .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 30px}
 
-/* ── KPI cards ── */
-.kpi{position:relative;overflow:hidden}
-.kpi .label{font-size:13px;color:var(--muted);font-weight:500}
-.kpi .value{font-size:30px;font-weight:800;line-height:1.1;margin:6px 0 2px}
-.kpi .sub{font-size:12px;font-weight:600}
-.kpi .ic{position:absolute;top:16px;right:16px;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:20px}
-.ic-blue{background:rgba(59,130,246,.15);color:var(--primary)}
-.ic-green{background:rgba(34,197,94,.15);color:var(--success)}
-.ic-red{background:rgba(239,68,68,.15);color:var(--danger)}
-.ic-yellow{background:rgba(245,158,11,.15);color:var(--warning)}
-.ic-purple{background:rgba(168,85,247,.15);color:var(--purple)}
-.ic-cyan{background:rgba(34,211,238,.15);color:#22D3EE}
-.t-green{color:var(--success)} .t-red{color:var(--danger)} .t-blue{color:var(--primary)}
-.t-yellow{color:var(--warning)} .t-purple{color:var(--purple)} .t-cyan{color:#22D3EE}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:1400px){.kpis{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{position:relative;overflow:hidden;padding:15px 16px}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:500}
+.kpi .value{font-size:25px;font-weight:800;line-height:1.15;margin:5px 0 1px}
+.kpi .sub{font-size:11.5px;font-weight:600}
+.kpi .ic{position:absolute;top:13px;right:13px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:16px}
+.ic-blue{background:rgba(59,130,246,.15);color:var(--primary)} .t-blue{color:var(--primary)}
+.ic-green{background:rgba(34,197,94,.15);color:var(--success)} .t-green{color:var(--success)}
+.ic-red{background:rgba(239,68,68,.15);color:var(--danger)} .t-red{color:var(--danger)}
+.ic-yellow{background:rgba(245,158,11,.15);color:var(--warning)} .t-yellow{color:var(--warning)}
+.ic-purple{background:rgba(168,85,247,.15);color:var(--purple)} .t-purple{color:var(--purple)}
+.ic-cyan{background:rgba(34,211,238,.15);color:var(--cyan)} .t-cyan{color:var(--cyan)}
 
-/* ── Timeline panel ── */
+/* Timeline panel */
 .tl-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px 6px 96px}
 .tl-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)}
 .tl-name{width:86px;flex:0 0 86px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -67,63 +77,71 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;paddi
 .tl-dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--card)}
 .d-first{background:var(--success)} .d-in{background:var(--primary)} .d-out{background:var(--warning)} .d-last{background:var(--danger)}
 .tl-time{position:absolute;top:-2px;font-size:10px;color:var(--muted);transform:translateX(-50%)}
-.glow{box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.5s infinite}
+.glow{animation:pulse 1.5s infinite}
 
-/* ── Tables ── */
+/* avatar */
+.av{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:0 0 34px}
+.name-cell{display:flex;align-items:center;gap:10px}
+.name-cell .nm{font-weight:700;cursor:pointer}
+.name-cell .nm:hover{color:var(--primary)}
+
+/* table */
 table.dataTable{border-collapse:collapse!important;color:var(--text)}
-table.dataTable thead th{background:transparent;color:var(--muted);border-bottom:1px solid var(--border)!important;
-  font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-table.dataTable tbody td{border-top:1px solid var(--border);font-size:13.5px;vertical-align:middle}
-table.dataTable tbody tr{background:transparent!important}
+table.dataTable thead th{background:#172033;color:var(--muted);border-bottom:1px solid var(--border)!important;
+  font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;position:sticky;top:0;z-index:2}
+table.dataTable tbody td{border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
 table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
 .emp-id{color:var(--muted);font-size:12px}
-.emp-name{font-weight:700}
-.badge-soft{background:rgba(148,163,184,.18);color:var(--text);padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
-.badge-1st{background:rgba(34,197,94,.16);color:var(--success);padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-left:6px}
-.pill{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
-.p-present{background:rgba(34,197,94,.15);color:var(--success)}
-.p-incomplete{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-soft{background:rgba(148,163,184,.18);padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.chip{padding:2px 9px;border-radius:7px;font-size:11px;font-weight:600;background:rgba(148,163,184,.12);color:var(--muted)}
+.pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.p-completed{background:rgba(34,197,94,.15);color:var(--success)}
+.p-inside{background:rgba(34,211,238,.15);color:var(--cyan)}
+.p-missing{background:rgba(245,158,11,.15);color:var(--warning)}
 .p-absent{background:rgba(239,68,68,.13);color:var(--danger)}
-.mini-tl{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.mini-ev{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted)}
-.mini-d{width:9px;height:9px;border-radius:50%}
-.mini-line{width:16px;height:2px;background:rgba(148,163,184,.3)}
-.no-out{color:var(--danger);font-size:11.5px;font-weight:600}
+.tag-late{background:rgba(239,68,68,.15);color:var(--danger);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;margin-left:5px}
+.mini-tl{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.mini-d{width:9px;height:9px;border-radius:50%}.mini-line{width:14px;height:2px;background:rgba(148,163,184,.3)}
+.mini-ev{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.no-out{color:var(--danger);font-size:11px;font-weight:600}
 .dt-control{cursor:pointer;color:var(--primary)}
-
-/* expand child */
-.child-box{padding:10px 6px}
-.child-box table{width:auto;font-size:12.5px}
-.child-box th,.child-box td{padding:5px 16px 5px 0;color:var(--muted)}
-.child-box td b{color:var(--text)}
+.child-box{padding:12px 8px}
+.sess{display:flex;align-items:center;gap:14px;padding:7px 12px;background:rgba(148,163,184,.05);border-radius:10px;margin-bottom:7px;font-size:13px}
+.sess .badge-in{color:var(--success);font-weight:700}.sess .badge-out{color:var(--warning);font-weight:700}
+.sess .dur{margin-left:auto;font-weight:700;color:var(--cyan)}
 
 /* sidebar */
-.sum-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13.5px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
 .sum-row:last-child{border-bottom:0}
-.sum-row b{font-weight:700}
-.rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.rank{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
 .rank:last-child{border-bottom:0}
 .rank .n{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:rgba(148,163,184,.15)}
-.rank .n.g1{background:rgba(245,158,11,.2);color:var(--warning)}
-.rank .n.g2{background:rgba(148,163,184,.25)}
-.rank .n.g3{background:rgba(168,85,247,.2);color:var(--purple)}
-.feed-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
-.feed-row:last-child{border-bottom:0}
-.feed-t{color:var(--muted);font-size:12px;width:64px;flex:0 0 64px}
-.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px}
-.tag-in{background:rgba(59,130,246,.16);color:var(--primary)}
-.tag-out{background:rgba(245,158,11,.16);color:var(--warning)}
+.rank .n.g1{background:rgba(245,158,11,.2);color:var(--warning)}.rank .n.g2{background:rgba(148,163,184,.25)}.rank .n.g3{background:rgba(168,85,247,.2);color:var(--purple)}
+.list-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.list-row:last-child{border-bottom:0}
+.feed-t{color:var(--muted);font-size:12px;width:78px;flex:0 0 78px}
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px}
+.tag-in{background:rgba(59,130,246,.16);color:var(--primary)}.tag-out{background:rgba(245,158,11,.16);color:var(--warning)}
+.live-badge{font-size:10px;font-weight:700;color:var(--success);background:rgba(34,197,94,.13);padding:1px 7px;border-radius:6px}
 
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select{background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:8px}
+/* calendar heatmap */
+.cal{display:flex;flex-wrap:wrap;gap:4px}
+.cal .cell{width:15px;height:15px;border-radius:4px;background:rgba(148,163,184,.1)}
+.cal-legend{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-top:8px}
+.cal-legend .cell{width:13px;height:13px;border-radius:3px}
+
+/* DataTables chrome */
+.dataTables_wrapper .dataTables_filter input{background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:8px}
 .dataTables_wrapper .dataTables_info,.dataTables_wrapper .dataTables_paginate{color:var(--muted)!important;font-size:12px}
 .dt-button{background:var(--card)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:8px!important;font-size:12px!important}
 .page-link{background:var(--card);border-color:var(--border);color:var(--text)}
 .page-item.active .page-link{background:var(--primary);border-color:var(--primary)}
-.foot{margin-top:22px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.table-scroll{max-height:560px;overflow:auto}
 .chart-box{position:relative;height:210px}
-.fade-in{animation:fade .5s ease}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.foot{margin-top:22px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.modal-content{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:var(--radius)}
+.modal-header,.modal-footer{border-color:var(--border)}
+.fade-in{animation:fade .5s ease}@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -133,112 +151,140 @@ table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
   <div class="brand">
     <div class="logo"><i class="fa-solid fa-fingerprint"></i></div>
     <div>
-      <h1>Biometric <span>Attendance</span> Dashboard</h1>
-      <div class="muted" style="font-size:12px">ESSL / ZKTeco ADMS Live System</div>
+      <h1>HRMS <span>Attendance</span> Dashboard</h1>
+      <div class="muted small">ESSL / ZKTeco ADMS &middot; Live Biometric System</div>
     </div>
   </div>
   <div class="meta">
     <span id="live-badge" class="live"><span class="dot"></span> LIVE</span>
-    <input type="date" id="date-filter" class="form-control form-control-sm"
-      style="width:auto;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:10px">
-    <button id="btn-today" class="btn btn-sm" title="Jump to today (live)"
-      style="background:rgba(34,197,94,.12);color:#22C55E;border:1px solid rgba(34,197,94,.3);border-radius:10px;font-weight:600">
-      <i class="fa-regular fa-calendar-check"></i> Today</button>
+    <input type="date" id="date-filter">
+    <button id="btn-today" class="btn btn-sm btn-round btn-green"><i class="fa-regular fa-calendar-check"></i> Today</button>
     <span><i class="fa-regular fa-clock"></i> <b id="m-time">--:--:--</b></span>
-    <span class="muted">Refreshed <b id="m-refresh">--</b></span>
-    <button id="btn-pull" class="btn btn-sm" title="Ask the device to re-upload all stored attendance logs"
-      style="background:rgba(59,130,246,.15);color:#3B82F6;border:1px solid rgba(59,130,246,.35);border-radius:10px;font-weight:600">
-      <i class="fa-solid fa-cloud-arrow-down"></i> Re-import Logs</button>
+    <div style="position:relative">
+      <span class="bell" id="bell"><i class="fa-regular fa-bell"></i><span class="cnt" id="bell-cnt" style="display:none">0</span></span>
+      <div class="notif-pop" id="notif-pop"></div>
+    </div>
+    <button id="btn-pull" class="btn btn-sm btn-round btn-blue" title="Re-upload all stored logs from the device">
+      <i class="fa-solid fa-cloud-arrow-down"></i> Re-import</button>
   </div>
 </div>
 
 <!-- KPI cards -->
-<div class="row g-3 mb-1">
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-blue"><i class="fa-solid fa-users"></i></div>
-    <div class="label">Total Employees</div><div class="value" id="k-total">0</div>
-    <div class="sub muted">Active: <span class="t-blue" id="k-active">0</span></div></div></div>
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-green"><i class="fa-solid fa-user-check"></i></div>
-    <div class="label">Present Today</div><div class="value t-green" id="k-present">0</div>
-    <div class="sub t-green" id="k-present-pct">0%</div></div></div>
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-red"><i class="fa-solid fa-user-xmark"></i></div>
-    <div class="label">Absent Today</div><div class="value t-red" id="k-absent">0</div>
-    <div class="sub t-red" id="k-absent-pct">0%</div></div></div>
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-yellow"><i class="fa-solid fa-fingerprint"></i></div>
-    <div class="label">Total Punches Today</div><div class="value t-yellow" id="k-punches">0</div>
-    <div class="sub muted">Avg / Emp: <span id="k-avgpunch">0</span></div></div></div>
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-purple"><i class="fa-solid fa-business-time"></i></div>
-    <div class="label">Total Working Hours</div><div class="value t-purple" id="k-working">00h 00m</div>
-    <div class="sub muted">Avg / Emp: <span id="k-avgwork">00h 00m</span></div></div></div>
-  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
-    <div class="ic ic-cyan"><i class="fa-solid fa-wave-square"></i></div>
-    <div class="label">On Duty Now</div><div class="value t-cyan" id="k-onduty">0</div>
-    <div class="sub t-green">Currently Inside</div></div></div>
+<div class="kpis" id="kpis">
+  <div class="card-x kpi fade-in"><div class="ic ic-blue"><i class="fa-solid fa-users"></i></div>
+    <div class="label">Total Employees</div><div class="value" id="k-total">0</div><div class="sub muted">Active: <span id="k-active">0</span></div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-green"><i class="fa-solid fa-user-check"></i></div>
+    <div class="label">Present Today</div><div class="value t-green" id="k-present">0</div><div class="sub t-green" id="k-present-pct">0%</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-red"><i class="fa-solid fa-user-xmark"></i></div>
+    <div class="label">Absent Today</div><div class="value t-red" id="k-absent">0</div><div class="sub t-red" id="k-absent-pct">0%</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-yellow"><i class="fa-solid fa-clock"></i></div>
+    <div class="label">Late Arrivals</div><div class="value t-yellow" id="k-late">0</div><div class="sub muted">after grace</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-cyan"><i class="fa-solid fa-wave-square"></i></div>
+    <div class="label">Inside Office</div><div class="value t-cyan" id="k-inside">0</div><div class="sub t-green">live now</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-green"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="label">Completed Shift</div><div class="value t-green" id="k-completed">0</div><div class="sub muted">punched out</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-yellow"><i class="fa-solid fa-fingerprint"></i></div>
+    <div class="label">Total Punches</div><div class="value t-yellow" id="k-punches">0</div><div class="sub muted">Avg/Emp: <span id="k-avgpunch">0</span></div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-purple"><i class="fa-solid fa-business-time"></i></div>
+    <div class="label">Total Working Hrs</div><div class="value t-purple" id="k-working">00h 00m</div><div class="sub muted">Avg: <span id="k-avgwork">00h 00m</span></div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-blue"><i class="fa-solid fa-hourglass-half"></i></div>
+    <div class="label">Total Overtime</div><div class="value t-blue" id="k-ot">00h 00m</div><div class="sub muted">beyond shift</div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-green"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+    <div class="label">Avg First Punch</div><div class="value t-green" id="k-avgfirst">--:--</div><div class="sub muted">Earliest: <span id="k-earliest">--:--</span></div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-red"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <div class="label">Avg Last Punch</div><div class="value t-red" id="k-avglast">--:--</div><div class="sub muted">Latest: <span id="k-latest">--:--</span></div></div>
+  <div class="card-x kpi fade-in"><div class="ic ic-cyan"><i class="fa-solid fa-signal"></i></div>
+    <div class="label">Live Employees</div><div class="value t-cyan" id="k-live">0</div><div class="sub t-green">currently working</div></div>
 </div>
 
-<!-- Charts row -->
-<div class="row g-3 mt-1">
+<!-- Charts -->
+<div class="row g-3">
   <div class="col-12 col-xl-3"><div class="card-x">
-    <div class="section-title">First Punch Overview (Today)</div>
+    <div class="section-title"><i class="fa-solid fa-chart-pie"></i> First Punch Overview</div>
     <div class="chart-box"><canvas id="donut"></canvas></div>
-    <div class="text-center muted mt-2" style="font-size:13px">Avg First Punch:
-      <b class="t-green" id="avg-first">--:--</b></div>
-  </div></div>
+    <div class="d-flex justify-content-around mt-3 small">
+      <div class="text-center"><div class="muted">Earliest</div><b class="t-green" id="fp-early">--:--</b></div>
+      <div class="text-center"><div class="muted">Average</div><b class="t-cyan" id="fp-avg">--:--</b></div>
+      <div class="text-center"><div class="muted">Latest</div><b class="t-red" id="fp-late">--:--</b></div>
+    </div></div></div>
   <div class="col-12 col-xl-6"><div class="card-x">
-    <div class="section-title">Punch In / Out Timeline (Today)</div>
+    <div class="section-title"><i class="fa-solid fa-timeline"></i> Punch In / Out Timeline</div>
     <div class="tl-axis" id="tl-axis"></div>
-    <div id="timeline" style="max-height:300px;overflow-y:auto"></div>
-  </div></div>
+    <div id="timeline" style="max-height:300px;overflow-y:auto"></div></div></div>
   <div class="col-12 col-xl-3"><div class="card-x">
-    <div class="section-title">Working Hours Distribution</div>
-    <div class="chart-box"><canvas id="bar"></canvas></div>
-  </div></div>
+    <div class="section-title"><i class="fa-solid fa-chart-column"></i> Working Hours</div>
+    <div class="chart-box"><canvas id="bar"></canvas></div></div></div>
+</div>
+
+<!-- Department analytics -->
+<div class="row g-3 mt-1">
+  <div class="col-12 col-xl-8"><div class="card-x">
+    <div class="section-title"><i class="fa-solid fa-building"></i> Department Analytics</div>
+    <div class="chart-box" style="height:230px"><canvas id="deptChart"></canvas></div></div></div>
+  <div class="col-12 col-xl-4"><div class="card-x">
+    <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Attendance Calendar <span class="muted small" id="cal-month" style="margin-left:auto"></span></div>
+    <div class="cal" id="calendar"></div>
+    <div class="cal-legend">Less
+      <span class="cell" style="background:rgba(148,163,184,.1)"></span>
+      <span class="cell" style="background:rgba(34,197,94,.3)"></span>
+      <span class="cell" style="background:rgba(34,197,94,.6)"></span>
+      <span class="cell" style="background:rgba(34,197,94,1)"></span> More</div></div></div>
 </div>
 
 <!-- Table + sidebar -->
 <div class="row g-3 mt-1">
   <div class="col-12 col-xl-9"><div class="card-x">
-    <div class="section-title">Today's Detailed Attendance</div>
-    <div class="table-responsive">
+    <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+      <div class="section-title mb-0" style="flex:1"><i class="fa-solid fa-table-list"></i> Detailed Attendance</div>
+      <select class="flt" id="flt-dept"><option value="">All Departments</option></select>
+      <select class="flt" id="flt-shift"><option value="">All Shifts</option></select>
+      <select class="flt" id="flt-status"><option value="">All Status</option>
+        <option>Completed Shift</option><option>Inside Office</option>
+        <option>Missing Punch Out</option></select>
+    </div>
+    <div class="table-scroll">
       <table id="attTable" class="table align-middle w-100">
         <thead><tr>
-          <th></th><th>ID</th><th>Name</th><th>First Punch</th><th>Last Punch</th>
-          <th>Punches</th><th>Working</th><th>Break</th><th>OT</th><th>Status</th><th>In / Out Timeline</th>
-        </tr></thead>
-        <tbody></tbody>
+          <th></th><th>ID</th><th>Employee</th><th>Department</th><th>Designation</th><th>Shift</th>
+          <th>First</th><th>Last</th><th>Punches</th><th>Working</th><th>Break</th><th>OT</th>
+          <th>Status</th><th>Timeline</th>
+        </tr></thead><tbody></tbody>
       </table>
-    </div>
-  </div></div>
+    </div></div></div>
 
   <div class="col-12 col-xl-3">
-    <div class="card-x mb-3">
-      <div class="section-title">Today's Summary</div>
-      <div class="sum-row"><span class="muted">Total Present</span><b class="t-green" id="s-present">0</b></div>
-      <div class="sum-row"><span class="muted">Total Absent</span><b class="t-red" id="s-absent">0</b></div>
-      <div class="sum-row"><span class="muted">Incomplete (No Out)</span><b class="t-yellow" id="s-incomplete">0</b></div>
-      <div class="sum-row"><span class="muted">Total Punches</span><b id="s-punches">0</b></div>
-      <div class="sum-row"><span class="muted">Total Working Hours</span><b class="t-purple" id="s-working">00h 00m</b></div>
-      <div class="sum-row"><span class="muted">Avg Working Hours</span><b class="t-cyan" id="s-avg">00h 00m</b></div>
-    </div>
-    <div class="card-x mb-3">
-      <div class="section-title">Top 5 by Working Hours</div>
-      <div id="top5"></div>
-    </div>
-    <div class="card-x">
-      <div class="section-title">Recent Punch Activity</div>
-      <div id="feed"></div>
-    </div>
+    <div class="card-x mb-3"><div class="section-title"><i class="fa-solid fa-clipboard-list"></i> Today's Summary</div>
+      <div class="sum-row"><span class="muted">Present</span><b class="t-green" id="s-present">0</b></div>
+      <div class="sum-row"><span class="muted">Absent</span><b class="t-red" id="s-absent">0</b></div>
+      <div class="sum-row"><span class="muted">Late</span><b class="t-yellow" id="s-late">0</b></div>
+      <div class="sum-row"><span class="muted">Inside Office</span><b class="t-cyan" id="s-inside">0</b></div>
+      <div class="sum-row"><span class="muted">Completed Shift</span><b class="t-green" id="s-completed">0</b></div>
+      <div class="sum-row"><span class="muted">Missing Punch Out</span><b class="t-yellow" id="s-missing">0</b></div>
+      <div class="sum-row"><span class="muted">Avg Working Hours</span><b class="t-purple" id="s-avg">00h 00m</b></div>
+      <div class="sum-row"><span class="muted">Total Overtime</span><b class="t-blue" id="s-ot">00h 00m</b></div></div>
+
+    <div class="card-x mb-3"><div class="section-title"><i class="fa-solid fa-trophy"></i> Top Performers</div>
+      <div id="top10"></div></div>
+    <div class="card-x mb-3"><div class="section-title"><i class="fa-solid fa-person-running"></i> Late Arrivals</div>
+      <div id="late-list"></div></div>
+    <div class="card-x mb-3"><div class="section-title"><i class="fa-solid fa-door-open"></i> Currently Inside</div>
+      <div id="inside-list"></div></div>
+    <div class="card-x"><div class="section-title"><i class="fa-solid fa-bolt"></i> Recent Activity</div>
+      <div id="feed"></div></div>
   </div>
 </div>
 
 <div class="foot">
-  <span>Note: 1st Punch = First IN &nbsp;|&nbsp; Working = paired IN→OUT &nbsp;|&nbsp; Incomplete = odd punches (No OUT)</span>
+  <span>Working Hours = &Sigma; IN&rarr;OUT &middot; Break = &Sigma; OUT&rarr;IN &middot; Late = first IN after shift grace &middot; Inside = odd punches (no OUT)</span>
   <span>ESSL Attendance Log System</span>
 </div>
+
+<!-- Employee modal -->
+<div class="modal fade" id="empModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Employee Detail</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body" id="modal-body"></div>
+</div></div></div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -248,244 +294,221 @@ table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 
 <script>
-let donut, bar, dt, lastTableJson = "";
+let donut, bar, deptChart, dt, lastTableJson = "", lastData = null, selectedDate = "";
+const AVCOL = ["#3B82F6","#22C55E","#F59E0B","#A855F7","#22D3EE","#EF4444","#EC4899","#14B8A6"];
+const avColor = id => AVCOL[(parseInt(id)||0) % AVCOL.length];
 
-function fmt12(hms){
-  if(!hms) return "--";
-  const [H,M] = hms.split(":"); let h = +H;
-  const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-  return String(h).padStart(2,"0") + ":" + M + " " + ap;
-}
-function pillClass(s){
-  if(s === "Present") return "p-present";
-  if(s === "Absent") return "p-absent";
-  return "p-incomplete";
-}
-function dotClass(ev){
-  if(ev.first) return "d-first";
-  if(ev.last)  return "d-last";
-  return ev.type === "IN" ? "d-in" : "d-out";
-}
+function fmt12(hms){ if(!hms) return "--"; const p=hms.split(":"); let h=+p[0];
+  const ap=h>=12?"PM":"AM"; h=h%12||12; return String(h).padStart(2,"0")+":"+p[1]+" "+ap; }
+function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+function dotClass(ev){ return ev.first?"d-first":ev.last?"d-last":ev.type==="IN"?"d-in":"d-out"; }
+function statusPill(s){ const c=s==="Completed Shift"?"p-completed":s==="Inside Office"?"p-inside":
+  s==="Missing Punch Out"?"p-missing":"p-absent"; return `<span class="pill ${c}">${s}</span>`; }
 
 function miniTimeline(events){
   if(!events.length) return '<span class="no-out">No punch</span>';
-  let h = '<div class="mini-tl">';
-  events.forEach((ev,i)=>{
-    if(i) h += '<span class="mini-line"></span>';
-    h += `<span class="mini-ev"><span class="mini-d ${dotClass(ev)}"></span>`
-       + `${fmt12(ev.time)} ${ev.type === "IN" ? "In" : "Out"}</span>`;
-  });
-  if(events.length % 2 === 1) h += '<span class="no-out">&nbsp;(No Out)</span>';
-  return h + '</div>';
+  let h='<div class="mini-tl">';
+  events.forEach((ev,i)=>{ if(i)h+='<span class="mini-line"></span>';
+    h+=`<span class="mini-ev"><span class="mini-d ${dotClass(ev)}"></span>${ev.time.slice(0,5)} ${ev.type==="IN"?"In":"Out"}</span>`; });
+  if(events.length%2===1) h+='<span class="no-out">&nbsp;(No Out)</span>';
+  return h+'</div>';
 }
-
-function childHtml(row){
-  let h = '<div class="child-box"><table><tr><th>Time</th><th>Type</th><th>Duration</th></tr>';
-  const ev = row.events;
-  for(let i=0;i<ev.length;i++){
-    let dur = "";
-    if(ev[i].type === "IN" && ev[i+1]){
-      const a = ev[i].time.split(":"), b = ev[i+1].time.split(":");
-      let mins = (b[0]*60+ +b[1]) - (a[0]*60+ +a[1]);
-      dur = (mins>=0? "" : "-") + Math.floor(Math.abs(mins)/60)+"h "+Math.abs(mins)%60+"m";
-    }
-    h += `<tr><td><b>${fmt12(ev[i].time)}</b></td>`
-       + `<td><span class="tag ${ev[i].type==="IN"?"tag-in":"tag-out"}">${ev[i].type}</span></td>`
-       + `<td>${dur||"&mdash;"}</td></tr>`;
-  }
-  h += `</table><div class="mt-2 muted" style="font-size:12px">`
-     + `Working: <b class="t-purple">${row.working}</b> &nbsp;|&nbsp; `
-     + `Break: <b class="t-yellow">${row.break}</b> &nbsp;|&nbsp; `
-     + `Overtime: <b class="t-green">${row.overtime}</b></div></div>`;
+function childHtml(r){
+  let h='<div class="child-box">';
+  r.sessions.forEach((s,i)=>{ h+=`<div class="sess"><span>Session ${i+1}</span>`
+    +`<span class="badge-in">${fmt12(s.in)} IN</span>`
+    +(s.out?`<span class="badge-out">${fmt12(s.out)} OUT</span>`:'<span class="no-out">No OUT yet</span>')
+    +`<span class="dur">${s.dur==="--"?"":s.dur}</span></div>`; });
+  h+=`<div class="mt-2 small muted">Working <b class="t-purple">${r.working}</b> &middot; `
+    +`Break <b class="t-yellow">${r.break}</b> &middot; OT <b class="t-green">${r.overtime}</b> &middot; `
+    +`${statusPill(r.status)}</div></div>`;
   return h;
 }
-
-function renderTimeline(tl, axis){
-  let ax = "";
-  for(let h = axis.start; h <= axis.end; h += 2){
-    const ap = h >= 12 ? "PM" : "AM", hh = h % 12 || 12;
-    ax += `<span>${String(hh).padStart(2,"0")}:00 ${ap}</span>`;
-  }
-  document.getElementById("tl-axis").innerHTML = ax;
-
-  let h = "";
-  tl.forEach(r=>{
-    const ev = r.events;
-    const lo = ev.length ? ev[0].pct : 0, hi = ev.length ? ev[ev.length-1].pct : 0;
-    let dots = `<div class="bar" style="left:${lo}%;width:${Math.max(hi-lo,0)}%"></div>`;
-    ev.forEach(e=>{
-      const glow = (e.last && r.inside) ? "glow" : "";
-      dots += `<div class="tl-dot ${dotClass(e)} ${glow}" style="left:${e.pct}%" title="${e.time} ${e.type}"></div>`;
-    });
-    if(ev.length){
-      dots += `<span class="tl-time" style="left:${lo}%">${ev[0].time.slice(0,5)}</span>`;
-      if(hi - lo > 8) dots += `<span class="tl-time" style="left:${hi}%">${ev[ev.length-1].time.slice(0,5)}</span>`;
-    }
-    h += `<div class="tl-row"><div class="tl-name" title="${r.name}">${r.name}</div>`
-       + `<div class="tl-track">${dots}</div></div>`;
-  });
-  document.getElementById("timeline").innerHTML = h || '<div class="muted p-3">No punches yet today.</div>';
+function renderTimeline(tl,axis){
+  let ax=""; for(let h=axis.start;h<=axis.end;h+=2){ const ap=h>=12?"PM":"AM",hh=h%12||12;
+    ax+=`<span>${String(hh).padStart(2,"0")}:00 ${ap}</span>`; }
+  document.getElementById("tl-axis").innerHTML=ax;
+  let html="";
+  tl.forEach(r=>{ const ev=r.events; const lo=ev.length?ev[0].pct:0,hi=ev.length?ev[ev.length-1].pct:0;
+    let dots=`<div class="bar" style="left:${lo}%;width:${Math.max(hi-lo,0)}%"></div>`;
+    ev.forEach(e=>{ const g=(e.last&&r.inside)?"glow":"";
+      dots+=`<div class="tl-dot ${dotClass(e)} ${g}" style="left:${e.pct}%" title="${e.time} ${e.type}"></div>`; });
+    if(ev.length) dots+=`<span class="tl-time" style="left:${lo}%">${ev[0].time.slice(0,5)}</span>`;
+    html+=`<div class="tl-row"><div class="tl-name" title="${r.name}">${r.name}</div><div class="tl-track">${dots}</div></div>`; });
+  document.getElementById("timeline").innerHTML=html||'<div class="muted p-3">No punches yet today.</div>';
 }
 
 function buildTable(rows){
   if(dt){ dt.destroy(); $("#attTable tbody").empty(); }
-  const data = rows.map(r=>([
-    "", `<span class="emp-id">${r.emp_id}</span>`,
-    `<span class="emp-name">${r.name}</span>`,
-    r.first_punch ? fmt12(r.first_punch)+'<span class="badge-1st">1st</span>' : "--",
-    r.last_punch ? fmt12(r.last_punch) : "--",
-    `<span class="badge-soft">${r.punch_count}</span>`,
-    r.working, r.break, r.overtime,
-    `<span class="pill ${pillClass(r.status)}">${r.status}</span>`,
-    miniTimeline(r.events),
-  ]));
-  dt = $("#attTable").DataTable({
-    data, pageLength:15, order:[],
-    lengthChange:false,
+  const data=rows.map(r=>([ "",
+    `<span class="emp-id">${r.emp_id}</span>`,
+    `<div class="name-cell"><div class="av" style="background:${avColor(r.emp_id)}">${r.initials}</div>`
+      +`<span class="nm" data-emp="${r.emp_id}">${r.name}</span></div>`,
+    `<span class="chip">${r.department}</span>`, r.designation, `<span class="chip">${r.shift}</span>`,
+    r.first_punch?fmt12(r.first_punch):"--", r.last_punch?fmt12(r.last_punch):"--",
+    `<span class="badge-soft">${r.punch_count}</span>`, r.working, r.break, r.overtime,
+    statusPill(r.status)+(r.late?'<span class="tag-late">LATE</span>':''),
+    miniTimeline(r.events) ]));
+  dt=$("#attTable").DataTable({ data, pageLength:15, order:[], lengthChange:false,
     dom:"<'d-flex justify-content-between align-items-center mb-2'Bf>rt<'d-flex justify-content-between'ip>",
     buttons:[
-      {extend:"excelHtml5",text:'<i class="fa-solid fa-file-excel"></i> Excel',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
-      {extend:"csvHtml5",text:'<i class="fa-solid fa-file-csv"></i> CSV',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
-      {extend:"print",text:'<i class="fa-solid fa-print"></i> Print',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
+      {extend:"excelHtml5",text:'<i class="fa-solid fa-file-excel"></i> Excel',exportOptions:{columns:[1,2,3,4,5,6,7,8,9,10,11,12]}},
+      {extend:"csvHtml5",text:'<i class="fa-solid fa-file-csv"></i> CSV',exportOptions:{columns:[1,2,3,4,5,6,7,8,9,10,11,12]}},
+      {extend:"pdfHtml5",text:'<i class="fa-solid fa-file-pdf"></i> PDF',orientation:"landscape",pageSize:"A3",exportOptions:{columns:[1,2,3,4,5,6,7,8,9,10,11,12]}},
+      {extend:"print",text:'<i class="fa-solid fa-print"></i> Print',exportOptions:{columns:[1,2,3,4,5,6,7,8,9,10,11,12]}},
     ],
     columnDefs:[
       {targets:0,orderable:false,className:"dt-control",render:()=>'<i class="fa-solid fa-circle-chevron-right"></i>'},
-      {targets:[10],orderable:false},
-    ],
-    language:{search:"",searchPlaceholder:"Search employee..."},
-  });
-  // expandable child rows
+      {targets:[13],orderable:false} ],
+    language:{search:"",searchPlaceholder:"Search name / dept / status..."} });
   $("#attTable tbody").off("click","td.dt-control").on("click","td.dt-control",function(){
-    const tr = $(this).closest("tr"), row = dt.row(tr);
-    if(row.child.isShown()){ row.child.hide(); }
-    else { row.child(childHtml(rows[row.index()])).show(); }
+    const tr=$(this).closest("tr"),row=dt.row(tr);
+    if(row.child.isShown()) row.child.hide(); else row.child(childHtml(rows[row.index()])).show(); });
+  $("#attTable tbody").off("click",".nm").on("click",".nm",function(){ openEmployee($(this).data("emp")); });
+  // populate filter dropdowns
+  fillFilter("flt-dept",[...new Set(rows.map(r=>r.department))]);
+  fillFilter("flt-shift",[...new Set(rows.map(r=>r.shift))]);
+}
+function fillFilter(id,vals){ const s=document.getElementById(id),cur=s.value;
+  s.innerHTML=s.options[0].outerHTML+vals.sort().map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join(""); }
+$(document).on("change","#flt-dept",function(){ dt.column(3).search(this.value).draw(); });
+$(document).on("change","#flt-shift",function(){ dt.column(5).search(this.value).draw(); });
+$(document).on("change","#flt-status",function(){ dt.column(12).search(this.value,false,false).draw(); });
+
+function renderTop10(list){ document.getElementById("top10").innerHTML=list.map((e,i)=>
+  `<div class="rank"><span class="n g${i+1<=3?i+1:''}">${i+1}</span><span style="flex:1">${e.name}<div class="muted small">${e.department}</div></span><b class="t-cyan">${e.working}</b></div>`).join("")||'<div class="muted small">No data</div>'; }
+function renderLate(list){ document.getElementById("late-list").innerHTML=list.map(e=>
+  `<div class="list-row"><span style="flex:1">${e.name}<div class="muted small">${e.department}</div></span><div class="text-end"><div class="t-yellow">${fmt12(e.first_punch)}</div><div class="muted small">+${e.delay}</div></div></div>`).join("")||'<div class="muted small">No late arrivals 🎉</div>'; }
+function renderInside(list){ document.getElementById("inside-list").innerHTML=list.map(e=>
+  `<div class="list-row"><span class="live-badge">LIVE</span><span style="flex:1">${e.name}<div class="muted small">since ${fmt12(e.last_in)}</div></span><b class="t-green">${e.elapsed}</b></div>`).join("")||'<div class="muted small">Nobody inside</div>'; }
+function renderFeed(list){ document.getElementById("feed").innerHTML=list.map(f=>
+  `<div class="list-row"><span class="feed-t">${fmt12(f.time)}</span><span style="flex:1">${f.name}</span><span class="tag ${f.type==="IN"?"tag-in":"tag-out"}">${f.type}</span></div>`).join("")||'<div class="muted small">No activity</div>'; }
+
+function renderNotifs(d){
+  const items=[];
+  d.late_list.forEach(e=>items.push({ic:"fa-person-running",c:"ic-yellow",t:`${e.name} arrived late`,s:`${fmt12(e.first_punch)} (+${e.delay})`}));
+  d.table.filter(r=>r.inside&&!d.is_today).forEach(r=>items.push({ic:"fa-triangle-exclamation",c:"ic-red",t:`${r.name} missing punch-out`,s:r.department}));
+  d.table.filter(r=>r.overtime_min>0).forEach(r=>items.push({ic:"fa-hourglass-half",c:"ic-blue",t:`${r.name} overtime`,s:r.overtime}));
+  const cnt=document.getElementById("bell-cnt");
+  if(items.length){ cnt.style.display="block"; cnt.textContent=items.length; } else cnt.style.display="none";
+  document.getElementById("notif-pop").innerHTML=items.length?items.map(i=>
+    `<div class="notif-i"><div class="ic ${i.c}"><i class="fa-solid ${i.ic}"></i></div><div><div>${i.t}</div><div class="muted small">${i.s}</div></div></div>`).join("")
+    :'<div class="muted small p-2">No notifications</div>';
+}
+
+function renderCalendar(){
+  const month=(selectedDate||lastData.server_today).slice(0,7);
+  fetch("/api/calendar?month="+month).then(r=>r.json()).then(c=>{
+    setText("cal-month",c.month);
+    const map={}; c.days.forEach(x=>map[x.date]=x.count);
+    const [y,m]=c.month.split("-").map(Number); const days=new Date(y,m,0).getDate();
+    let h="";
+    for(let d=1;d<=days;d++){ const ds=`${c.month}-${String(d).padStart(2,"0")}`;
+      const cnt=map[ds]||0, ratio=cnt/Math.max(c.total_employees,1);
+      const bg=cnt===0?"rgba(148,163,184,.1)":`rgba(34,197,94,${Math.min(.25+ratio,1).toFixed(2)})`;
+      h+=`<span class="cell" style="background:${bg}" title="${ds}: ${cnt} present"></span>`; }
+    document.getElementById("calendar").innerHTML=h;
+  }).catch(()=>{});
+}
+
+function openEmployee(id){
+  fetch("/api/employee/"+id+(selectedDate?"?date="+selectedDate:"")).then(r=>r.json()).then(e=>{
+    let sess=e.sessions.map((s,i)=>`<div class="sess"><span>S${i+1}</span><span class="badge-in">${fmt12(s.in)} IN</span>`
+      +(s.out?`<span class="badge-out">${fmt12(s.out)} OUT</span>`:'<span class="no-out">No OUT</span>')+`<span class="dur">${s.dur==="--"?"":s.dur}</span></div>`).join("")||'<div class="muted small">No punches</div>';
+    document.getElementById("modal-body").innerHTML=`
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="av" style="width:56px;height:56px;font-size:20px;background:${avColor(e.emp_id)}">${e.initials}</div>
+        <div><h4 class="mb-0">${e.name}</h4><div class="muted">${e.designation} &middot; ${e.department} &middot; ${e.shift} Shift (${e.shift_time})</div></div>
+        <div class="ms-auto">${statusPill(e.status)}${e.late?'<span class="tag-late">LATE</span>':''}</div></div>
+      <div class="row g-2 mb-3 text-center">
+        <div class="col"><div class="card-x p-2"><div class="muted small">First</div><b class="t-green">${fmt12(e.first_punch)}</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">Last</div><b class="t-red">${fmt12(e.last_punch)}</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">Punches</div><b>${e.punch_count}</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">Working</div><b class="t-purple">${e.working}</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">Break</div><b class="t-yellow">${e.break}</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">OT</div><b class="t-blue">${e.overtime}</b></div></div></div>
+      <div class="section-title">Sessions</div>${sess}
+      <div class="row g-2 mt-2 text-center">
+        <div class="col"><div class="card-x p-2"><div class="muted small">This Week Present</div><b class="t-cyan">${e.week_present} days (${e.week_pct}%)</b></div></div>
+        <div class="col"><div class="card-x p-2"><div class="muted small">This Month Present</div><b class="t-green">${e.month_present} days (${e.month_pct}%)</b></div></div></div>`;
+    new bootstrap.Modal(document.getElementById("empModal")).show();
   });
 }
-
-function renderTop5(list){
-  document.getElementById("top5").innerHTML = list.map((e,i)=>(
-    `<div class="rank"><span class="n g${i+1<=3?i+1:''}">${i+1}</span>`
-    + `<span style="flex:1">${e.name}</span>`
-    + `<b class="t-cyan">${e.working}</b></div>`
-  )).join("") || '<div class="muted">No data</div>';
-}
-
-function renderFeed(list){
-  document.getElementById("feed").innerHTML = list.map(f=>(
-    `<div class="feed-row"><span class="feed-t">${fmt12(f.time)}</span>`
-    + `<span style="flex:1">${f.name}</span>`
-    + `<span class="tag ${f.type==="IN"?"tag-in":"tag-out"}">${f.type}</span></div>`
-  )).join("") || '<div class="muted">No activity yet</div>';
-}
-
-function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
 function render(d){
-  const k = d.kpis;
-  // initialise the date picker once, and toggle live vs historical view
-  const df = document.getElementById("date-filter");
-  if(!df.value) df.value = d.date;
-  const isToday = (d.date === d.server_today);
-  const badge = document.getElementById("live-badge");
-  if(isToday){
-    badge.className = "live";
-    badge.innerHTML = '<span class="dot"></span> LIVE';
-  } else {
-    badge.className = "live";
-    badge.style.color = "#F59E0B";
-    badge.style.borderColor = "rgba(245,158,11,.35)";
-    badge.style.background = "rgba(245,158,11,.08)";
-    badge.innerHTML = '<i class="fa-regular fa-calendar"></i> ' + d.date_label;
-  }
-  setText("m-time", d.now);
-  setText("m-refresh", new Date().toLocaleTimeString());
-  setText("k-total", k.total_employees); setText("k-active", k.active);
-  setText("k-present", k.present); setText("k-present-pct", k.present_pct + "%");
-  setText("k-absent", k.absent); setText("k-absent-pct", k.absent_pct + "%");
-  setText("k-punches", k.total_punches); setText("k-avgpunch", k.avg_punches);
-  setText("k-working", k.total_working); setText("k-avgwork", k.avg_working);
-  setText("k-onduty", k.on_duty);
-  setText("avg-first", d.first_punch.avg);
+  lastData=d; const k=d.kpis;
+  const df=document.getElementById("date-filter"); if(!df.value) df.value=d.date;
+  const badge=document.getElementById("live-badge");
+  if(d.is_today){ badge.className="live"; badge.style=""; badge.innerHTML='<span class="dot"></span> LIVE'; }
+  else { badge.className="live"; badge.style.color="#F59E0B"; badge.style.borderColor="rgba(245,158,11,.35)";
+    badge.style.background="rgba(245,158,11,.08)"; badge.innerHTML='<i class="fa-regular fa-calendar"></i> '+d.date_label; }
+  setText("m-time",d.now);
+  setText("k-total",k.total_employees); setText("k-active",k.active);
+  setText("k-present",k.present); setText("k-present-pct",k.present_pct+"%");
+  setText("k-absent",k.absent); setText("k-absent-pct",k.absent_pct+"%");
+  setText("k-late",k.late); setText("k-inside",k.inside); setText("k-completed",k.completed);
+  setText("k-punches",k.total_punches); setText("k-avgpunch",k.avg_punches);
+  setText("k-working",k.total_working); setText("k-avgwork",k.avg_working);
+  setText("k-ot",k.total_overtime);
+  setText("k-avgfirst",k.avg_first); setText("k-earliest",fmt12(k.earliest).replace(" ",""));
+  setText("k-avglast",k.avg_last); setText("k-latest",fmt12(k.latest).replace(" ",""));
+  setText("k-live",k.live);
+  setText("fp-early",fmt12(k.earliest)); setText("fp-avg",d.first_punch.avg); setText("fp-late",fmt12(k.latest));
 
-  setText("s-present", d.summary.present); setText("s-absent", d.summary.absent);
-  setText("s-incomplete", d.summary.incomplete); setText("s-punches", d.summary.total_punches);
-  setText("s-working", d.summary.total_working); setText("s-avg", d.summary.avg_working);
+  setText("s-present",d.summary.present); setText("s-absent",d.summary.absent);
+  setText("s-late",d.summary.late); setText("s-inside",d.summary.inside);
+  setText("s-completed",d.summary.completed); setText("s-missing",d.summary.missing_out);
+  setText("s-avg",d.summary.avg_working); setText("s-ot",d.summary.total_overtime);
 
-  // donut
-  const fp = d.first_punch, donutData = [fp.before9, fp.h9_10, fp.h10_11, fp.after11];
-  if(!donut){
-    donut = new Chart(document.getElementById("donut"), {
-      type:"doughnut",
-      data:{labels:["Before 9 AM","9-10 AM","10-11 AM","After 11 AM"],
-        datasets:[{data:donutData,backgroundColor:["#22C55E","#3B82F6","#F59E0B","#EF4444"],borderWidth:0}]},
-      options:{cutout:"64%",plugins:{legend:{position:"bottom",labels:{color:"#94A3B8",boxWidth:12,font:{size:11}}}}}
-    });
-  } else { donut.data.datasets[0].data = donutData; donut.update(); }
+  const fp=d.first_punch, dd=[fp.before9,fp.h9_10,fp.h10_11,fp.after11];
+  if(!donut){ donut=new Chart(document.getElementById("donut"),{type:"doughnut",
+    data:{labels:["Before 9","9-10","10-11","After 11"],datasets:[{data:dd,backgroundColor:["#22C55E","#3B82F6","#F59E0B","#EF4444"],borderWidth:0}]},
+    options:{cutout:"64%",plugins:{legend:{position:"bottom",labels:{color:"#94A3B8",boxWidth:11,font:{size:10}}}}}}); }
+  else { donut.data.datasets[0].data=dd; donut.update(); }
 
-  // bar
-  if(!bar){
-    bar = new Chart(document.getElementById("bar"), {
-      type:"bar",
-      data:{labels:["0-2h","2-4h","4-6h","6-8h","8+h"],
-        datasets:[{data:d.work_buckets,backgroundColor:["#EF4444","#F59E0B","#22C55E","#3B82F6","#A855F7"],borderRadius:6}]},
-      options:{plugins:{legend:{display:false}},
-        scales:{x:{ticks:{color:"#94A3B8"},grid:{display:false}},
-                y:{beginAtZero:true,ticks:{color:"#94A3B8",precision:0},grid:{color:"rgba(255,255,255,.05)"}}}}
-    });
-  } else { bar.data.datasets[0].data = d.work_buckets; bar.update(); }
+  if(!bar){ bar=new Chart(document.getElementById("bar"),{type:"bar",
+    data:{labels:["0-2h","2-4h","4-6h","6-8h","8+h"],datasets:[{data:d.work_buckets,backgroundColor:["#EF4444","#F59E0B","#22C55E","#3B82F6","#A855F7"],borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#94A3B8"},grid:{display:false}},y:{beginAtZero:true,ticks:{color:"#94A3B8",precision:0},grid:{color:"rgba(255,255,255,.05)"}}}}}); }
+  else { bar.data.datasets[0].data=d.work_buckets; bar.update(); }
 
-  renderTimeline(d.timeline, d.axis);
-  renderTop5(d.top5);
-  renderFeed(d.feed);
+  const dl=d.departments.filter(x=>x.total>0);
+  if(!deptChart){ deptChart=new Chart(document.getElementById("deptChart"),{type:"bar",
+    data:{labels:dl.map(x=>x.name),datasets:[
+      {label:"Present",data:dl.map(x=>x.present),backgroundColor:"#22C55E",borderRadius:5},
+      {label:"Absent",data:dl.map(x=>x.absent),backgroundColor:"#EF4444",borderRadius:5},
+      {label:"Late",data:dl.map(x=>x.late),backgroundColor:"#F59E0B",borderRadius:5}]},
+    options:{plugins:{legend:{position:"top",labels:{color:"#94A3B8",boxWidth:11,font:{size:11}}}},
+      scales:{x:{stacked:false,ticks:{color:"#94A3B8"},grid:{display:false}},y:{beginAtZero:true,ticks:{color:"#94A3B8",precision:0},grid:{color:"rgba(255,255,255,.05)"}}}}}); }
+  else { deptChart.data.labels=dl.map(x=>x.name); deptChart.data.datasets[0].data=dl.map(x=>x.present);
+    deptChart.data.datasets[1].data=dl.map(x=>x.absent); deptChart.data.datasets[2].data=dl.map(x=>x.late); deptChart.update(); }
 
-  const tj = JSON.stringify(d.table);
-  if(tj !== lastTableJson){ buildTable(d.table); lastTableJson = tj; }
+  renderTimeline(d.timeline,d.axis);
+  renderTop10(d.top10); renderLate(d.late_list); renderInside(d.inside_list); renderFeed(d.feed);
+  renderNotifs(d);
+
+  const tj=JSON.stringify(d.table);
+  if(tj!==lastTableJson){ buildTable(d.table); lastTableJson=tj; renderCalendar(); }
 }
 
-let selectedDate = "";   // "" => server's today (live)
+function tick(){ fetch("/api/dashboard"+(selectedDate?"?date="+selectedDate:"")).then(r=>r.json()).then(render).catch(()=>{}); }
+tick(); setInterval(tick,5000);
 
-function tick(){
-  const q = selectedDate ? ("?date=" + selectedDate) : "";
-  fetch("/api/dashboard" + q).then(r=>r.json()).then(render).catch(()=>{});
-}
-tick();
-setInterval(tick, 5000);
-
-// Date filter -> view any day's attendance
-document.getElementById("date-filter").addEventListener("change", function(){
-  selectedDate = this.value;
-  lastTableJson = "";          // force table rebuild for the new day
-  tick();
-});
-document.getElementById("btn-today").addEventListener("click", function(){
-  selectedDate = "";
-  document.getElementById("date-filter").value = "";
-  lastTableJson = "";
-  tick();
-});
-
-// Re-import all stored logs from the device
-document.getElementById("btn-pull").addEventListener("click", function(){
-  const btn = this;
-  btn.disabled = true;
-  const old = btn.innerHTML;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Requesting...';
+document.getElementById("date-filter").addEventListener("change",function(){ selectedDate=this.value; lastTableJson=""; tick(); });
+document.getElementById("btn-today").addEventListener("click",function(){ selectedDate=""; document.getElementById("date-filter").value=""; lastTableJson=""; tick(); });
+document.getElementById("bell").addEventListener("click",function(e){ e.stopPropagation();
+  document.getElementById("notif-pop").classList.toggle("show"); });
+document.addEventListener("click",()=>document.getElementById("notif-pop").classList.remove("show"));
+document.getElementById("btn-pull").addEventListener("click",function(){
+  const b=this,o=b.innerHTML; b.disabled=true; b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Requesting...';
   fetch("/api/pull-logs").then(r=>r.json()).then(d=>{
-    if(d.ok){
-      alert("Re-import requested for device " + d.sn + " (" + d.from + " to " + d.to + ").\n\n"
-        + "The machine will upload its stored logs on its next poll (~1 min). "
-        + "Watch the dashboard fill in.");
-    } else {
-      alert("Could not request re-import: " + (d.error || "unknown error")
-        + "\n\nThe device must connect to the server at least once first.");
-    }
-  }).catch(()=>alert("Request failed.")).finally(()=>{
-    btn.disabled = false; btn.innerHTML = old;
-  });
+    alert(d.ok?("Re-import requested for device "+d.sn+" ("+d.from+" to "+d.to+").\nThe machine will upload on its next poll (~1 min)."):("Could not request: "+(d.error||"error")));
+  }).catch(()=>alert("Request failed.")).finally(()=>{ b.disabled=false; b.innerHTML=o; });
 });
 </script>
 </body>
