@@ -167,6 +167,8 @@ td.tl-cell{width:240px}
       <span class="bell" id="bell"><i class="fa-regular fa-bell"></i><span class="cnt" id="bell-cnt" style="display:none">0</span></span>
       <div class="notif-pop" id="notif-pop"></div>
     </div>
+    <button id="btn-time" class="btn btn-sm btn-round btn-green" title="Set the device clock to the correct server time">
+      <i class="fa-solid fa-clock-rotate-left"></i> Sync Time</button>
     <button id="btn-pull" class="btn btn-sm btn-round btn-blue" title="Re-upload all stored logs from the device">
       <i class="fa-solid fa-cloud-arrow-down"></i> Re-import</button>
   </div>
@@ -512,6 +514,13 @@ document.getElementById("btn-pull").addEventListener("click",function(){
   const b=this,o=b.innerHTML; b.disabled=true; b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Requesting...';
   fetch("/api/pull-logs").then(r=>r.json()).then(d=>{
     alert(d.ok?("Re-import requested for device "+d.sn+" ("+d.from+" to "+d.to+").\nThe machine will upload on its next poll (~1 min)."):("Could not request: "+(d.error||"error")));
+  }).catch(()=>alert("Request failed.")).finally(()=>{ b.disabled=false; b.innerHTML=o; });
+});
+document.getElementById("btn-time").addEventListener("click",function(){
+  if(!confirm("Set the device clock to the correct server time?")) return;
+  const b=this,o=b.innerHTML; b.disabled=true; b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
+  fetch("/api/set-time").then(r=>r.json()).then(d=>{
+    alert(d.ok?("Time-sync queued for device "+d.sn+".\nDevice clock will be set to "+d.time+" on its next poll (~1 min)."):("Could not sync: "+(d.error||"error")));
   }).catch(()=>alert("Request failed.")).finally(()=>{ b.disabled=false; b.innerHTML=o; });
 });
 </script>

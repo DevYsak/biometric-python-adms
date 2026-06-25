@@ -140,6 +140,17 @@ def queue_pull_attlog(sn, start_date, end_date):
     return queue_command(sn, cmd)
 
 
+def zk_encode_time(dt):
+    """Encode a datetime to the ZKTeco/ESSL packed integer used by SET OPTION DateTime."""
+    return (((dt.year - 2000) * 12 * 31 + (dt.month - 1) * 31 + (dt.day - 1)) * 86400
+            + dt.hour * 3600 + dt.minute * 60 + dt.second)
+
+
+def queue_set_time(sn, target_dt):
+    """Tell the device to set its clock to target_dt (corrects a drifted device clock)."""
+    return queue_command(sn, f"SET OPTION DateTime={zk_encode_time(target_dt)}")
+
+
 # ── Database ─────────────────────────────────────────────────────────────────
 def db():
     conn = sqlite3.connect(DB_PATH)
@@ -575,6 +586,29 @@ class MyServer(BaseHTTPRequestHandler):
                 "ok": True, "sn": sn, "cmd_id": cid, "from": start, "to": end,
                 "note": "Command queued. The device will upload on its next poll "
                         "(usually within ~1 minute)."
+            }), content_type="application/json")
+
+        # Set / correct the device clock to the server's (correct) local time.
+        if path == "/api/set-time":
+            q = self._query()
+            sn = q.get("sn", [LAST_SN])[0] or LAST_SN
+            if not sn:
+                return self._send(
+                    json.dumps({"ok": False, "error": "No device has connected yet."}),
+                    status=400, content_type="application/json")
+            target = now_local()
+            delta = q.get("delta_min", [None])[0]
+            if delta is not None:
+                try:
+                    target = target + timedelta(minutes=float(delta))
+                except ValueError:
+                    pass
+            cid = queue_set_time(sn, target)
+            tstr = target.strftime("%Y-%m-%d %H:%M:%S")
+            print(f"\n[TIME] queued SET DateTime={tstr} for SN={sn}, cmd C:{cid}")
+            return self._send(json.dumps({
+                "ok": True, "sn": sn, "cmd_id": cid, "time": tstr,
+                "note": "The device clock will update on its next poll (~1 min)."
             }), content_type="application/json")
 
         if path.startswith("/api/employee/"):
