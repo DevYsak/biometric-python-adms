@@ -355,9 +355,15 @@ def build_dashboard(date_str):
         if a["early_leave"]:
             early_cnt += 1
 
-        ds = dept_stats[a["department"]]
+        # Unknown PINs (not in EMPLOYEES) still punch -- create their dept/shift
+        # bucket on the fly and count them in the totals so % stays sane.
+        ds = dept_stats.setdefault(a["department"],
+            {"name": a["department"], "total": 0, "present": 0, "late": 0, "work_min": 0})
+        ss = shift_stats.setdefault(a["shift"],
+            {"name": a["shift"], "total": 0, "present": 0, "late": 0, "work_min": 0})
+        if emp_id not in EMPLOYEES:
+            ds["total"] += 1; ss["total"] += 1
         ds["present"] += 1; ds["work_min"] += a["working_min"]; ds["late"] += a["late"]
-        ss = shift_stats[a["shift"]]
         ss["present"] += 1; ss["work_min"] += a["working_min"]; ss["late"] += a["late"]
 
         fh = a["_first_min"] // 60
