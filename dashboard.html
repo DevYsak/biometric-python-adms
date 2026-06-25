@@ -138,8 +138,12 @@ table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
     </div>
   </div>
   <div class="meta">
-    <span class="live"><span class="dot"></span> LIVE</span>
-    <span><i class="fa-regular fa-calendar"></i> <b id="m-date">--</b></span>
+    <span id="live-badge" class="live"><span class="dot"></span> LIVE</span>
+    <input type="date" id="date-filter" class="form-control form-control-sm"
+      style="width:auto;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:10px">
+    <button id="btn-today" class="btn btn-sm" title="Jump to today (live)"
+      style="background:rgba(34,197,94,.12);color:#22C55E;border:1px solid rgba(34,197,94,.3);border-radius:10px;font-weight:600">
+      <i class="fa-regular fa-calendar-check"></i> Today</button>
     <span><i class="fa-regular fa-clock"></i> <b id="m-time">--:--:--</b></span>
     <span class="muted">Refreshed <b id="m-refresh">--</b></span>
     <button id="btn-pull" class="btn btn-sm" title="Ask the device to re-upload all stored attendance logs"
@@ -382,7 +386,22 @@ function setText(id,v){ const el=document.getElementById(id); if(el) el.textCont
 
 function render(d){
   const k = d.kpis;
-  setText("m-date", d.date_label); setText("m-time", d.now);
+  // initialise the date picker once, and toggle live vs historical view
+  const df = document.getElementById("date-filter");
+  if(!df.value) df.value = d.date;
+  const isToday = (d.date === d.server_today);
+  const badge = document.getElementById("live-badge");
+  if(isToday){
+    badge.className = "live";
+    badge.innerHTML = '<span class="dot"></span> LIVE';
+  } else {
+    badge.className = "live";
+    badge.style.color = "#F59E0B";
+    badge.style.borderColor = "rgba(245,158,11,.35)";
+    badge.style.background = "rgba(245,158,11,.08)";
+    badge.innerHTML = '<i class="fa-regular fa-calendar"></i> ' + d.date_label;
+  }
+  setText("m-time", d.now);
   setText("m-refresh", new Date().toLocaleTimeString());
   setText("k-total", k.total_employees); setText("k-active", k.active);
   setText("k-present", k.present); setText("k-present-pct", k.present_pct + "%");
@@ -427,11 +446,27 @@ function render(d){
   if(tj !== lastTableJson){ buildTable(d.table); lastTableJson = tj; }
 }
 
+let selectedDate = "";   // "" => server's today (live)
+
 function tick(){
-  fetch("/api/dashboard").then(r=>r.json()).then(render).catch(()=>{});
+  const q = selectedDate ? ("?date=" + selectedDate) : "";
+  fetch("/api/dashboard" + q).then(r=>r.json()).then(render).catch(()=>{});
 }
 tick();
 setInterval(tick, 5000);
+
+// Date filter -> view any day's attendance
+document.getElementById("date-filter").addEventListener("change", function(){
+  selectedDate = this.value;
+  lastTableJson = "";          // force table rebuild for the new day
+  tick();
+});
+document.getElementById("btn-today").addEventListener("click", function(){
+  selectedDate = "";
+  document.getElementById("date-filter").value = "";
+  lastTableJson = "";
+  tick();
+});
 
 // Re-import all stored logs from the device
 document.getElementById("btn-pull").addEventListener("click", function(){

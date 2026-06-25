@@ -257,6 +257,8 @@ def build_dashboard(date_str):
 
     return {
         "now": datetime.now().strftime("%H:%M:%S"),
+        "date": date_str,
+        "server_today": datetime.now().strftime("%Y-%m-%d"),
         "date_label": datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b %Y"),
         "kpis": {
             "total_employees": total_emp,
