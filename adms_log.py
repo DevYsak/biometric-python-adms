@@ -122,6 +122,8 @@ LAST_SN = None       # most recent real device serial seen
 # Live device activity, surfaced via /api/device-status for diagnostics.
 DEVICE_ACTIVITY = {"sn": None, "handshake": None, "getrequest": None,
                    "cdata": None, "cmd_sent": None, "cmd_ack": None}
+# Device clock vs server clock, from the most recent live punch.
+LAST_PUNCH = {"device_time": None, "received": None, "drift_min": None}
 
 
 def stamp(key, extra=None):
@@ -196,16 +198,25 @@ def store_punch(emp_id, dt_str, device_sn="", raw_status=""):
     """Insert one punch (deduped on emp_id+datetime). Returns True if newly added."""
     emp_name = EMPLOYEES.get(emp_id, f"Unknown ({emp_id})")
     punch_date = dt_str.split(" ")[0]
+    recv = now_local()
     with closing(db()) as conn, conn:
         cur = conn.execute(
             """INSERT OR IGNORE INTO punches
                (emp_id, emp_name, punch_dt, punch_date, device_sn, raw_status, created_at)
                VALUES (?,?,?,?,?,?,?)""",
             (emp_id, emp_name, dt_str, punch_date, device_sn, raw_status,
-             now_local().strftime("%Y-%m-%d %H:%M:%S")),
+             recv.strftime("%Y-%m-%d %H:%M:%S")),
         )
         new = cur.rowcount > 0
     if new:
+        # Track the device clock vs server clock from this live punch.
+        try:
+            pdt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+            LAST_PUNCH["device_time"] = dt_str
+            LAST_PUNCH["received"] = recv.strftime("%Y-%m-%d %H:%M:%S")
+            LAST_PUNCH["drift_min"] = round((pdt - recv).total_seconds() / 60, 1)
+        except ValueError:
+            pass
         print(f"  PUNCH  {emp_name:<16} | {dt_str} | SN={device_sn}")
     return new
 
@@ -598,6 +609,9 @@ class MyServer(BaseHTTPRequestHandler):
         if path == "/api/device-status":
             return self._send(json.dumps({**DEVICE_ACTIVITY, "last_sn": LAST_SN,
                 "server_time": now_local().strftime("%Y-%m-%d %H:%M:%S"),
+                "device_clock_from_last_punch": LAST_PUNCH["device_time"],
+                "last_punch_received": LAST_PUNCH["received"],
+                "device_drift_min": LAST_PUNCH["drift_min"],
                 "pending_commands": sum(len(v) for v in _PENDING.values())}),
                 content_type="application/json")
 
