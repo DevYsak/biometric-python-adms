@@ -320,7 +320,7 @@ def build_dashboard(date_str):
 
     for emp_id, erows in by_emp.items():
         a = analyze_employee(erows, emp_id, is_today, now_dt)
-        name = erows[0]["emp_name"]
+        name = EMPLOYEES.get(emp_id, erows[0]["emp_name"])
         present += 1
         total_punches += a["punch_count"]
         total_work += a["working_min"]
