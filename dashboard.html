@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biometric Attendance Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0F172A; --card:#1E293B; --primary:#3B82F6; --success:#22C55E;
+  --danger:#EF4444; --warning:#F59E0B; --purple:#A855F7; --text:#F8FAFC;
+  --muted:#94A3B8; --border:rgba(255,255,255,.08); --radius:18px;
+  --shadow:0 15px 35px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;padding:18px 22px 40px}
+.muted{color:var(--muted)}
+.card-x{
+  background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(255,255,255,0));
+  background-color:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(6px);
+  padding:18px 20px;height:100%;
+}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.2px}
+
+/* ── Navbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--primary),var(--purple));font-size:20px;box-shadow:var(--shadow)}
+.brand h1{font-size:20px;font-weight:800;margin:0}
+.brand h1 span{color:var(--primary)}
+.topbar .meta{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--muted)}
+.topbar .meta b{color:var(--text)}
+.live{display:inline-flex;align-items:center;gap:7px;color:var(--success);font-weight:700;font-size:12px;
+  border:1px solid rgba(34,197,94,.35);padding:5px 12px;border-radius:30px;background:rgba(34,197,94,.08)}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--success);box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.5s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 9px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+
+/* ── KPI cards ── */
+.kpi{position:relative;overflow:hidden}
+.kpi .label{font-size:13px;color:var(--muted);font-weight:500}
+.kpi .value{font-size:30px;font-weight:800;line-height:1.1;margin:6px 0 2px}
+.kpi .sub{font-size:12px;font-weight:600}
+.kpi .ic{position:absolute;top:16px;right:16px;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:20px}
+.ic-blue{background:rgba(59,130,246,.15);color:var(--primary)}
+.ic-green{background:rgba(34,197,94,.15);color:var(--success)}
+.ic-red{background:rgba(239,68,68,.15);color:var(--danger)}
+.ic-yellow{background:rgba(245,158,11,.15);color:var(--warning)}
+.ic-purple{background:rgba(168,85,247,.15);color:var(--purple)}
+.ic-cyan{background:rgba(34,211,238,.15);color:#22D3EE}
+.t-green{color:var(--success)} .t-red{color:var(--danger)} .t-blue{color:var(--primary)}
+.t-yellow{color:var(--warning)} .t-purple{color:var(--purple)} .t-cyan{color:#22D3EE}
+
+/* ── Timeline panel ── */
+.tl-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px 6px 96px}
+.tl-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)}
+.tl-name{width:86px;flex:0 0 86px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-track{position:relative;flex:1;height:22px}
+.tl-track .bar{position:absolute;top:50%;height:3px;background:rgba(148,163,184,.25);transform:translateY(-50%);border-radius:3px}
+.tl-dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--card)}
+.d-first{background:var(--success)} .d-in{background:var(--primary)} .d-out{background:var(--warning)} .d-last{background:var(--danger)}
+.tl-time{position:absolute;top:-2px;font-size:10px;color:var(--muted);transform:translateX(-50%)}
+.glow{box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.5s infinite}
+
+/* ── Tables ── */
+table.dataTable{border-collapse:collapse!important;color:var(--text)}
+table.dataTable thead th{background:transparent;color:var(--muted);border-bottom:1px solid var(--border)!important;
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+table.dataTable tbody td{border-top:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+table.dataTable tbody tr{background:transparent!important}
+table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
+.emp-id{color:var(--muted);font-size:12px}
+.emp-name{font-weight:700}
+.badge-soft{background:rgba(148,163,184,.18);color:var(--text);padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-1st{background:rgba(34,197,94,.16);color:var(--success);padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-left:6px}
+.pill{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p-present{background:rgba(34,197,94,.15);color:var(--success)}
+.p-incomplete{background:rgba(245,158,11,.15);color:var(--warning)}
+.p-absent{background:rgba(239,68,68,.13);color:var(--danger)}
+.mini-tl{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mini-ev{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted)}
+.mini-d{width:9px;height:9px;border-radius:50%}
+.mini-line{width:16px;height:2px;background:rgba(148,163,184,.3)}
+.no-out{color:var(--danger);font-size:11.5px;font-weight:600}
+.dt-control{cursor:pointer;color:var(--primary)}
+
+/* expand child */
+.child-box{padding:10px 6px}
+.child-box table{width:auto;font-size:12.5px}
+.child-box th,.child-box td{padding:5px 16px 5px 0;color:var(--muted)}
+.child-box td b{color:var(--text)}
+
+/* sidebar */
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13.5px}
+.sum-row:last-child{border-bottom:0}
+.sum-row b{font-weight:700}
+.rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.rank:last-child{border-bottom:0}
+.rank .n{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:rgba(148,163,184,.15)}
+.rank .n.g1{background:rgba(245,158,11,.2);color:var(--warning)}
+.rank .n.g2{background:rgba(148,163,184,.25)}
+.rank .n.g3{background:rgba(168,85,247,.2);color:var(--purple)}
+.feed-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.feed-row:last-child{border-bottom:0}
+.feed-t{color:var(--muted);font-size:12px;width:64px;flex:0 0 64px}
+.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px}
+.tag-in{background:rgba(59,130,246,.16);color:var(--primary)}
+.tag-out{background:rgba(245,158,11,.16);color:var(--warning)}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select{background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:8px}
+.dataTables_wrapper .dataTables_info,.dataTables_wrapper .dataTables_paginate{color:var(--muted)!important;font-size:12px}
+.dt-button{background:var(--card)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:8px!important;font-size:12px!important}
+.page-link{background:var(--card);border-color:var(--border);color:var(--text)}
+.page-item.active .page-link{background:var(--primary);border-color:var(--primary)}
+.foot{margin-top:22px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.chart-box{position:relative;height:210px}
+.fade-in{animation:fade .5s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="logo"><i class="fa-solid fa-fingerprint"></i></div>
+    <div>
+      <h1>Biometric <span>Attendance</span> Dashboard</h1>
+      <div class="muted" style="font-size:12px">ESSL / ZKTeco ADMS Live System</div>
+    </div>
+  </div>
+  <div class="meta">
+    <span class="live"><span class="dot"></span> LIVE</span>
+    <span><i class="fa-regular fa-calendar"></i> <b id="m-date">--</b></span>
+    <span><i class="fa-regular fa-clock"></i> <b id="m-time">--:--:--</b></span>
+    <span class="muted">Refreshed <b id="m-refresh">--</b></span>
+  </div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-1">
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-blue"><i class="fa-solid fa-users"></i></div>
+    <div class="label">Total Employees</div><div class="value" id="k-total">0</div>
+    <div class="sub muted">Active: <span class="t-blue" id="k-active">0</span></div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-green"><i class="fa-solid fa-user-check"></i></div>
+    <div class="label">Present Today</div><div class="value t-green" id="k-present">0</div>
+    <div class="sub t-green" id="k-present-pct">0%</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-red"><i class="fa-solid fa-user-xmark"></i></div>
+    <div class="label">Absent Today</div><div class="value t-red" id="k-absent">0</div>
+    <div class="sub t-red" id="k-absent-pct">0%</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-yellow"><i class="fa-solid fa-fingerprint"></i></div>
+    <div class="label">Total Punches Today</div><div class="value t-yellow" id="k-punches">0</div>
+    <div class="sub muted">Avg / Emp: <span id="k-avgpunch">0</span></div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-purple"><i class="fa-solid fa-business-time"></i></div>
+    <div class="label">Total Working Hours</div><div class="value t-purple" id="k-working">00h 00m</div>
+    <div class="sub muted">Avg / Emp: <span id="k-avgwork">00h 00m</span></div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card-x kpi fade-in">
+    <div class="ic ic-cyan"><i class="fa-solid fa-wave-square"></i></div>
+    <div class="label">On Duty Now</div><div class="value t-cyan" id="k-onduty">0</div>
+    <div class="sub t-green">Currently Inside</div></div></div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-3 mt-1">
+  <div class="col-12 col-xl-3"><div class="card-x">
+    <div class="section-title">First Punch Overview (Today)</div>
+    <div class="chart-box"><canvas id="donut"></canvas></div>
+    <div class="text-center muted mt-2" style="font-size:13px">Avg First Punch:
+      <b class="t-green" id="avg-first">--:--</b></div>
+  </div></div>
+  <div class="col-12 col-xl-6"><div class="card-x">
+    <div class="section-title">Punch In / Out Timeline (Today)</div>
+    <div class="tl-axis" id="tl-axis"></div>
+    <div id="timeline" style="max-height:300px;overflow-y:auto"></div>
+  </div></div>
+  <div class="col-12 col-xl-3"><div class="card-x">
+    <div class="section-title">Working Hours Distribution</div>
+    <div class="chart-box"><canvas id="bar"></canvas></div>
+  </div></div>
+</div>
+
+<!-- Table + sidebar -->
+<div class="row g-3 mt-1">
+  <div class="col-12 col-xl-9"><div class="card-x">
+    <div class="section-title">Today's Detailed Attendance</div>
+    <div class="table-responsive">
+      <table id="attTable" class="table align-middle w-100">
+        <thead><tr>
+          <th></th><th>ID</th><th>Name</th><th>First Punch</th><th>Last Punch</th>
+          <th>Punches</th><th>Working</th><th>Break</th><th>OT</th><th>Status</th><th>In / Out Timeline</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div></div>
+
+  <div class="col-12 col-xl-3">
+    <div class="card-x mb-3">
+      <div class="section-title">Today's Summary</div>
+      <div class="sum-row"><span class="muted">Total Present</span><b class="t-green" id="s-present">0</b></div>
+      <div class="sum-row"><span class="muted">Total Absent</span><b class="t-red" id="s-absent">0</b></div>
+      <div class="sum-row"><span class="muted">Incomplete (No Out)</span><b class="t-yellow" id="s-incomplete">0</b></div>
+      <div class="sum-row"><span class="muted">Total Punches</span><b id="s-punches">0</b></div>
+      <div class="sum-row"><span class="muted">Total Working Hours</span><b class="t-purple" id="s-working">00h 00m</b></div>
+      <div class="sum-row"><span class="muted">Avg Working Hours</span><b class="t-cyan" id="s-avg">00h 00m</b></div>
+    </div>
+    <div class="card-x mb-3">
+      <div class="section-title">Top 5 by Working Hours</div>
+      <div id="top5"></div>
+    </div>
+    <div class="card-x">
+      <div class="section-title">Recent Punch Activity</div>
+      <div id="feed"></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <span>Note: 1st Punch = First IN &nbsp;|&nbsp; Working = paired IN→OUT &nbsp;|&nbsp; Incomplete = odd punches (No OUT)</span>
+  <span>ESSL Attendance Log System</span>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script>
+let donut, bar, dt, lastTableJson = "";
+
+function fmt12(hms){
+  if(!hms) return "--";
+  const [H,M] = hms.split(":"); let h = +H;
+  const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+  return String(h).padStart(2,"0") + ":" + M + " " + ap;
+}
+function pillClass(s){
+  if(s === "Present") return "p-present";
+  if(s === "Absent") return "p-absent";
+  return "p-incomplete";
+}
+function dotClass(ev){
+  if(ev.first) return "d-first";
+  if(ev.last)  return "d-last";
+  return ev.type === "IN" ? "d-in" : "d-out";
+}
+
+function miniTimeline(events){
+  if(!events.length) return '<span class="no-out">No punch</span>';
+  let h = '<div class="mini-tl">';
+  events.forEach((ev,i)=>{
+    if(i) h += '<span class="mini-line"></span>';
+    h += `<span class="mini-ev"><span class="mini-d ${dotClass(ev)}"></span>`
+       + `${fmt12(ev.time)} ${ev.type === "IN" ? "In" : "Out"}</span>`;
+  });
+  if(events.length % 2 === 1) h += '<span class="no-out">&nbsp;(No Out)</span>';
+  return h + '</div>';
+}
+
+function childHtml(row){
+  let h = '<div class="child-box"><table><tr><th>Time</th><th>Type</th><th>Duration</th></tr>';
+  const ev = row.events;
+  for(let i=0;i<ev.length;i++){
+    let dur = "";
+    if(ev[i].type === "IN" && ev[i+1]){
+      const a = ev[i].time.split(":"), b = ev[i+1].time.split(":");
+      let mins = (b[0]*60+ +b[1]) - (a[0]*60+ +a[1]);
+      dur = (mins>=0? "" : "-") + Math.floor(Math.abs(mins)/60)+"h "+Math.abs(mins)%60+"m";
+    }
+    h += `<tr><td><b>${fmt12(ev[i].time)}</b></td>`
+       + `<td><span class="tag ${ev[i].type==="IN"?"tag-in":"tag-out"}">${ev[i].type}</span></td>`
+       + `<td>${dur||"&mdash;"}</td></tr>`;
+  }
+  h += `</table><div class="mt-2 muted" style="font-size:12px">`
+     + `Working: <b class="t-purple">${row.working}</b> &nbsp;|&nbsp; `
+     + `Break: <b class="t-yellow">${row.break}</b> &nbsp;|&nbsp; `
+     + `Overtime: <b class="t-green">${row.overtime}</b></div></div>`;
+  return h;
+}
+
+function renderTimeline(tl, axis){
+  let ax = "";
+  for(let h = axis.start; h <= axis.end; h += 2){
+    const ap = h >= 12 ? "PM" : "AM", hh = h % 12 || 12;
+    ax += `<span>${String(hh).padStart(2,"0")}:00 ${ap}</span>`;
+  }
+  document.getElementById("tl-axis").innerHTML = ax;
+
+  let h = "";
+  tl.forEach(r=>{
+    const ev = r.events;
+    const lo = ev.length ? ev[0].pct : 0, hi = ev.length ? ev[ev.length-1].pct : 0;
+    let dots = `<div class="bar" style="left:${lo}%;width:${Math.max(hi-lo,0)}%"></div>`;
+    ev.forEach(e=>{
+      const glow = (e.last && r.inside) ? "glow" : "";
+      dots += `<div class="tl-dot ${dotClass(e)} ${glow}" style="left:${e.pct}%" title="${e.time} ${e.type}"></div>`;
+    });
+    if(ev.length){
+      dots += `<span class="tl-time" style="left:${lo}%">${ev[0].time.slice(0,5)}</span>`;
+      if(hi - lo > 8) dots += `<span class="tl-time" style="left:${hi}%">${ev[ev.length-1].time.slice(0,5)}</span>`;
+    }
+    h += `<div class="tl-row"><div class="tl-name" title="${r.name}">${r.name}</div>`
+       + `<div class="tl-track">${dots}</div></div>`;
+  });
+  document.getElementById("timeline").innerHTML = h || '<div class="muted p-3">No punches yet today.</div>';
+}
+
+function buildTable(rows){
+  if(dt){ dt.destroy(); $("#attTable tbody").empty(); }
+  const data = rows.map(r=>([
+    "", `<span class="emp-id">${r.emp_id}</span>`,
+    `<span class="emp-name">${r.name}</span>`,
+    r.first_punch ? fmt12(r.first_punch)+'<span class="badge-1st">1st</span>' : "--",
+    r.last_punch ? fmt12(r.last_punch) : "--",
+    `<span class="badge-soft">${r.punch_count}</span>`,
+    r.working, r.break, r.overtime,
+    `<span class="pill ${pillClass(r.status)}">${r.status}</span>`,
+    miniTimeline(r.events),
+  ]));
+  dt = $("#attTable").DataTable({
+    data, pageLength:15, order:[],
+    lengthChange:false,
+    dom:"<'d-flex justify-content-between align-items-center mb-2'Bf>rt<'d-flex justify-content-between'ip>",
+    buttons:[
+      {extend:"excelHtml5",text:'<i class="fa-solid fa-file-excel"></i> Excel',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
+      {extend:"csvHtml5",text:'<i class="fa-solid fa-file-csv"></i> CSV',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
+      {extend:"print",text:'<i class="fa-solid fa-print"></i> Print',exportOptions:{columns:[1,2,3,4,5,6,7,8,9]}},
+    ],
+    columnDefs:[
+      {targets:0,orderable:false,className:"dt-control",render:()=>'<i class="fa-solid fa-circle-chevron-right"></i>'},
+      {targets:[10],orderable:false},
+    ],
+    language:{search:"",searchPlaceholder:"Search employee..."},
+  });
+  // expandable child rows
+  $("#attTable tbody").off("click","td.dt-control").on("click","td.dt-control",function(){
+    const tr = $(this).closest("tr"), row = dt.row(tr);
+    if(row.child.isShown()){ row.child.hide(); }
+    else { row.child(childHtml(rows[row.index()])).show(); }
+  });
+}
+
+function renderTop5(list){
+  document.getElementById("top5").innerHTML = list.map((e,i)=>(
+    `<div class="rank"><span class="n g${i+1<=3?i+1:''}">${i+1}</span>`
+    + `<span style="flex:1">${e.name}</span>`
+    + `<b class="t-cyan">${e.working}</b></div>`
+  )).join("") || '<div class="muted">No data</div>';
+}
+
+function renderFeed(list){
+  document.getElementById("feed").innerHTML = list.map(f=>(
+    `<div class="feed-row"><span class="feed-t">${fmt12(f.time)}</span>`
+    + `<span style="flex:1">${f.name}</span>`
+    + `<span class="tag ${f.type==="IN"?"tag-in":"tag-out"}">${f.type}</span></div>`
+  )).join("") || '<div class="muted">No activity yet</div>';
+}
+
+function setText(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+
+function render(d){
+  const k = d.kpis;
+  setText("m-date", d.date_label); setText("m-time", d.now);
+  setText("m-refresh", new Date().toLocaleTimeString());
+  setText("k-total", k.total_employees); setText("k-active", k.active);
+  setText("k-present", k.present); setText("k-present-pct", k.present_pct + "%");
+  setText("k-absent", k.absent); setText("k-absent-pct", k.absent_pct + "%");
+  setText("k-punches", k.total_punches); setText("k-avgpunch", k.avg_punches);
+  setText("k-working", k.total_working); setText("k-avgwork", k.avg_working);
+  setText("k-onduty", k.on_duty);
+  setText("avg-first", d.first_punch.avg);
+
+  setText("s-present", d.summary.present); setText("s-absent", d.summary.absent);
+  setText("s-incomplete", d.summary.incomplete); setText("s-punches", d.summary.total_punches);
+  setText("s-working", d.summary.total_working); setText("s-avg", d.summary.avg_working);
+
+  // donut
+  const fp = d.first_punch, donutData = [fp.before9, fp.h9_10, fp.h10_11, fp.after11];
+  if(!donut){
+    donut = new Chart(document.getElementById("donut"), {
+      type:"doughnut",
+      data:{labels:["Before 9 AM","9-10 AM","10-11 AM","After 11 AM"],
+        datasets:[{data:donutData,backgroundColor:["#22C55E","#3B82F6","#F59E0B","#EF4444"],borderWidth:0}]},
+      options:{cutout:"64%",plugins:{legend:{position:"bottom",labels:{color:"#94A3B8",boxWidth:12,font:{size:11}}}}}
+    });
+  } else { donut.data.datasets[0].data = donutData; donut.update(); }
+
+  // bar
+  if(!bar){
+    bar = new Chart(document.getElementById("bar"), {
+      type:"bar",
+      data:{labels:["0-2h","2-4h","4-6h","6-8h","8+h"],
+        datasets:[{data:d.work_buckets,backgroundColor:["#EF4444","#F59E0B","#22C55E","#3B82F6","#A855F7"],borderRadius:6}]},
+      options:{plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:"#94A3B8"},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{color:"#94A3B8",precision:0},grid:{color:"rgba(255,255,255,.05)"}}}}
+    });
+  } else { bar.data.datasets[0].data = d.work_buckets; bar.update(); }
+
+  renderTimeline(d.timeline, d.axis);
+  renderTop5(d.top5);
+  renderFeed(d.feed);
+
+  const tj = JSON.stringify(d.table);
+  if(tj !== lastTableJson){ buildTable(d.table); lastTableJson = tj; }
+}
+
+function tick(){
+  fetch("/api/dashboard").then(r=>r.json()).then(render).catch(()=>{});
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>

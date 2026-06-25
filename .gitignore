@@ -8,3 +8,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# SQLite attendance database (runtime data, created automatically)
+*.db
+_test.db
