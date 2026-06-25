@@ -35,6 +35,13 @@ STANDARD_DAY_MIN = 480       # 8h; beyond this counts as overtime
 TIMELINE_START_H = 8         # dashboard timeline axis start (08:00)
 TIMELINE_END_H = 18          # dashboard timeline axis end   (18:00)
 
+# Push a timezone to the device in the handshake. A 30-min-behind clock usually
+# means the device timezone is +5:00 instead of India's +5:30. Set this to fix it:
+#   "5.5"  -> hours-based firmware (IST = +5.5h)
+#   "330"  -> minutes-based firmware (IST = 330 min)
+# Leave None to never touch the device timezone (server only sets the clock value).
+HANDSHAKE_TIMEZONE = None
+
 # The device records punches in this local timezone. The server may run on UTC,
 # so we compute "now"/"today" in this zone to match the punch timestamps.
 TIMEZONE = "Asia/Kolkata"
@@ -512,15 +519,19 @@ def calendar_data(emp_id, month_str):
 
 # ── ADMS device protocol ─────────────────────────────────────────────────────
 def handshake_lines(sn):
-    # No TimeZone line -> server never resets the device clock.
-    return "\r\n".join([
+    lines = [
         f"GET OPTION FROM: {sn}",
         "Stamp=9999", "OpStamp=9999", "ErrorDelay=30", "Delay=10",
         "TransTimes=00:00;14:05", "TransInterval=1",
         "TransFlag=TransData AttLog OpLog AttPhoto EnrollUser ChgUser EnrollFP",
         "Realtime=1", "Encrypt=None",
-        "ATTLOGStamp=9999", "OPERLOGStamp=9999", "ATTPHOTOStamp=9999", "",
-    ])
+        "ATTLOGStamp=9999", "OPERLOGStamp=9999", "ATTPHOTOStamp=9999",
+    ]
+    # Only send TimeZone if explicitly configured (fixes a +5:00 vs +5:30 device).
+    if HANDSHAKE_TIMEZONE is not None:
+        lines.append(f"TimeZone={HANDSHAKE_TIMEZONE}")
+    lines.append("")
+    return "\r\n".join(lines)
 
 
 def parse_attlog(body, sn):
@@ -631,6 +642,25 @@ class MyServer(BaseHTTPRequestHandler):
                 "ok": True, "sn": sn, "cmd_id": cid, "time": tstr,
                 "note": "The device clock will update on its next poll (~1 min)."
             }), content_type="application/json")
+
+        # Push an arbitrary device option, e.g. fix timezone:
+        #   /api/set-option?key=TimeZone&value=330   (minutes-based firmware)
+        #   /api/set-option?key=TZ&value=330
+        if path == "/api/set-option":
+            q = self._query()
+            sn = q.get("sn", [LAST_SN])[0] or LAST_SN
+            key = q.get("key", [""])[0]
+            value = q.get("value", [""])[0]
+            if not sn or not key:
+                return self._send(json.dumps(
+                    {"ok": False, "error": "Need a connected device and ?key=&value="}),
+                    status=400, content_type="application/json")
+            cid = queue_command(sn, f"SET OPTION {key}={value}")
+            print(f"\n[OPT] queued SET OPTION {key}={value} for SN={sn}, cmd C:{cid}")
+            return self._send(json.dumps({"ok": True, "sn": sn, "cmd_id": cid,
+                "option": f"{key}={value}",
+                "note": "Queued. Device applies on next poll (~1 min). Then reboot the device."}),
+                content_type="application/json")
 
         if path.startswith("/api/employee/"):
             emp_id = path.rsplit("/", 1)[-1]
