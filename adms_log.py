@@ -61,7 +61,7 @@ EMPLOYEES = {
     "23": "Abhishek Bhoir", "24": "Altamash", "25": "Reeba", "26": "Sunita",
     "27": "Suhail khan", "28": "Gayatri", "29": "Sunil", "30": "Surekha",
     "31": "Kajal", "32": "Zaheer", "33": "Kashif", "34": "Chinmay",
-    "35": "Atif", "36": "Sudhanshu",
+    "35": "Atif", "36": "Firoz",
 }
 
 # ── Employee metadata (the device does NOT send this -- edit freely) ──────────
