@@ -100,10 +100,13 @@ table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
 .p-missing{background:rgba(245,158,11,.15);color:var(--warning)}
 .p-absent{background:rgba(239,68,68,.13);color:var(--danger)}
 .tag-late{background:rgba(239,68,68,.15);color:var(--danger);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;margin-left:5px}
-.mini-tl{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
-.mini-d{width:9px;height:9px;border-radius:50%}.mini-line{width:14px;height:2px;background:rgba(148,163,184,.3)}
-.mini-ev{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
 .no-out{color:var(--danger);font-size:11px;font-weight:600}
+/* compact in-row timeline track */
+td.tl-cell{width:240px}
+.row-tl{position:relative;width:220px;height:20px}
+.row-tl .bar{position:absolute;top:50%;height:3px;background:rgba(148,163,184,.25);transform:translateY(-50%);border-radius:3px}
+.row-tl .tl-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--card)}
+.row-tl .endlbl{position:absolute;top:-3px;font-size:9.5px;color:var(--muted)}
 .dt-control{cursor:pointer;color:var(--primary)}
 .child-box{padding:12px 8px}
 .sess{display:flex;align-items:center;gap:14px;padding:7px 12px;background:rgba(148,163,184,.05);border-radius:10px;margin-bottom:7px;font-size:13px}
@@ -311,12 +314,13 @@ function dotClass(ev){ return ev.first?"d-first":ev.last?"d-last":ev.type==="IN"
 function statusPill(s){ const c=s==="Completed Shift"?"p-completed":s==="Inside Office"?"p-inside":
   s==="Missing Punch Out"?"p-missing":"p-absent"; return `<span class="pill ${c}">${s}</span>`; }
 
-function miniTimeline(events){
+function miniTrack(events){
   if(!events.length) return '<span class="no-out">No punch</span>';
-  let h='<div class="mini-tl">';
-  events.forEach((ev,i)=>{ if(i)h+='<span class="mini-line"></span>';
-    h+=`<span class="mini-ev"><span class="mini-d ${dotClass(ev)}"></span>${ev.time.slice(0,5)} ${ev.type==="IN"?"In":"Out"}</span>`; });
-  if(events.length%2===1) h+='<span class="no-out">&nbsp;(No Out)</span>';
+  const lo=events[0].pct, hi=events[events.length-1].pct;
+  let h=`<div class="row-tl"><div class="bar" style="left:${lo}%;width:${Math.max(hi-lo,0)}%"></div>`;
+  events.forEach(e=>{ h+=`<div class="tl-dot ${dotClass(e)}" style="left:${e.pct}%" title="${e.time} ${e.type}"></div>`; });
+  h+=`<span class="endlbl" style="left:${lo}%;transform:translateX(-50%)">${events[0].time.slice(0,5)}</span>`;
+  if(hi-lo>14) h+=`<span class="endlbl" style="left:${hi}%;transform:translateX(-50%)">${events[events.length-1].time.slice(0,5)}</span>`;
   return h+'</div>';
 }
 function childHtml(r){
@@ -354,7 +358,7 @@ function buildTable(rows){
     r.first_punch?fmt12(r.first_punch):"--", r.last_punch?fmt12(r.last_punch):"--",
     `<span class="badge-soft">${r.punch_count}</span>`, r.working, r.break, r.overtime,
     statusPill(r.status)+(r.late?'<span class="tag-late">LATE</span>':''),
-    miniTimeline(r.events) ]));
+    miniTrack(r.events) ]));
   dt=$("#attTable").DataTable({ data, pageLength:15, order:[], lengthChange:false,
     dom:"<'d-flex justify-content-between align-items-center mb-2'Bf>rt<'d-flex justify-content-between'ip>",
     buttons:[
@@ -365,7 +369,7 @@ function buildTable(rows){
     ],
     columnDefs:[
       {targets:0,orderable:false,className:"dt-control",render:()=>'<i class="fa-solid fa-circle-chevron-right"></i>'},
-      {targets:[13],orderable:false} ],
+      {targets:[13],orderable:false,className:"tl-cell"} ],
     language:{search:"",searchPlaceholder:"Search name / dept / status..."} });
   $("#attTable tbody").off("click","td.dt-control").on("click","td.dt-control",function(){
     const tr=$(this).closest("tr"),row=dt.row(tr);
