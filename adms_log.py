@@ -112,11 +112,20 @@ _PENDING = {}        # serial_number -> [ "C:<id>:<command>", ... ]
 _CMD_ID = 0
 LAST_SN = None       # most recent real device serial seen
 
+# Live device activity, surfaced via /api/device-status for diagnostics.
+DEVICE_ACTIVITY = {"sn": None, "handshake": None, "getrequest": None,
+                   "cdata": None, "cmd_sent": None, "cmd_ack": None}
+
+
+def stamp(key, extra=None):
+    DEVICE_ACTIVITY[key] = now_local().strftime("%Y-%m-%d %H:%M:%S") + (f"  {extra}" if extra else "")
+
 
 def remember_sn(sn):
     global LAST_SN
     if sn and sn not in ("?", "TEST"):
         LAST_SN = sn
+        DEVICE_ACTIVITY["sn"] = sn
 
 
 def queue_command(sn, command):
@@ -575,6 +584,12 @@ class MyServer(BaseHTTPRequestHandler):
             return self._send(json.dumps(build_dashboard(self._today())),
                               content_type="application/json")
 
+        if path == "/api/device-status":
+            return self._send(json.dumps({**DEVICE_ACTIVITY, "last_sn": LAST_SN,
+                "server_time": now_local().strftime("%Y-%m-%d %H:%M:%S"),
+                "pending_commands": sum(len(v) for v in _PENDING.values())}),
+                content_type="application/json")
+
         # Force the device to re-upload all stored attendance logs.
         if path == "/api/pull-logs":
             q = self._query()
@@ -634,6 +649,7 @@ class MyServer(BaseHTTPRequestHandler):
             if self._query().get("options", [""])[0] == "all":
                 sn = self._query().get("SN", ["?"])[0]
                 remember_sn(sn)
+                stamp("handshake", f"SN={sn}")
                 print(f"\n[INIT] handshake SN={sn}")
                 return self._send(handshake_lines(sn))
             return self._send("OK")
@@ -642,9 +658,11 @@ class MyServer(BaseHTTPRequestHandler):
         if path in ("/iclock/getrequest", "/iclock/getrequest.aspx"):
             sn = self._query().get("SN", ["?"])[0]
             remember_sn(sn)
+            stamp("getrequest", f"SN={sn}")
             cmds = pop_commands(sn)
             if cmds:
-                print(f"[CMD] -> SN={sn}: {len(cmds)} command(s)")
+                stamp("cmd_sent", " | ".join(cmds))
+                print(f"[CMD] -> SN={sn}: {cmds}")
                 return self._send("\r\n".join(cmds) + "\r\n")
             return self._send("OK")
 
@@ -655,6 +673,11 @@ class MyServer(BaseHTTPRequestHandler):
         q = self._query()
 
         if path in ("/iclock/devicecmd", "/iclock/devicecmd.aspx"):
+            length = int(self.headers.get("Content-Length", 0))
+            ack = self.rfile.read(length).decode("utf-8", errors="ignore").strip()
+            detail = (ack or self.path).replace("\r", " ").replace("\n", " ")[:200]
+            stamp("cmd_ack", detail)
+            print(f"\n[ACK] devicecmd {self.path}  body={ack!r}")
             return self._send("OK")
 
         if path not in ("/iclock/cdata", "/iclock/cdata.aspx"):
@@ -665,6 +688,7 @@ class MyServer(BaseHTTPRequestHandler):
         table = q.get("table", [""])[0].upper()
         sn = q.get("SN", ["?"])[0]
         remember_sn(sn)
+        stamp("cdata", f"SN={sn} table={table or '-'}")
 
         print(f"\n===== CDATA POST SN={sn} table={table or '(none)'} =====")
         if body.strip():
