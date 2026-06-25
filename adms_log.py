@@ -23,6 +23,7 @@ import json
 import os
 import sys
 import sqlite3
+import threading
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 5000))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -45,6 +46,41 @@ EMPLOYEES = {
     "31": "Kajal", "32": "Zaheer", "33": "Kashif", "34": "Chinmay",
     "35": "Atif", "36": "Sudhanshu",
 }
+
+# ── Server -> device command queue ───────────────────────────────────────────
+# Commands are delivered when the device polls GET /iclock/getrequest. Used to
+# force the device to re-upload its stored attendance logs (DATA QUERY ATTLOG).
+_CMD_LOCK = threading.Lock()
+_PENDING = {}        # serial_number -> [ "C:<id>:<command>", ... ]
+_CMD_ID = 0
+LAST_SN = None       # most recent real device serial seen
+
+
+def remember_sn(sn):
+    global LAST_SN
+    if sn and sn not in ("?", "TEST"):
+        LAST_SN = sn
+
+
+def queue_command(sn, command):
+    global _CMD_ID
+    with _CMD_LOCK:
+        _CMD_ID += 1
+        cid = _CMD_ID
+        _PENDING.setdefault(sn, []).append(f"C:{cid}:{command}")
+    return cid
+
+
+def pop_commands(sn):
+    with _CMD_LOCK:
+        return _PENDING.pop(sn, [])
+
+
+def queue_pull_attlog(sn, start_date, end_date):
+    """Tell the device to re-upload all ATTLOG records in [start_date, end_date]."""
+    cmd = (f"DATA QUERY ATTLOG StartTime={start_date} 00:00:00"
+           f"\tEndTime={end_date} 23:59:59")
+    return queue_command(sn, cmd)
 
 
 # ── Database ─────────────────────────────────────────────────────────────────
@@ -325,6 +361,25 @@ class MyServer(BaseHTTPRequestHandler):
             return self._send(json.dumps(build_dashboard(self._today())),
                               content_type="application/json")
 
+        # Force the device to re-upload all stored attendance logs.
+        if path == "/api/pull-logs":
+            q = self._query()
+            sn = q.get("sn", [LAST_SN])[0] or LAST_SN
+            if not sn:
+                return self._send(
+                    json.dumps({"ok": False, "error": "No device has connected yet."}),
+                    status=400, content_type="application/json")
+            start = q.get("from", ["2020-01-01"])[0]
+            end = q.get("to", [datetime.now().strftime("%Y-%m-%d")])[0]
+            cid = queue_pull_attlog(sn, start, end)
+            print(f"\n[PULL] queued ATTLOG re-import for SN={sn} "
+                  f"({start} .. {end}), cmd C:{cid}")
+            return self._send(json.dumps({
+                "ok": True, "sn": sn, "cmd_id": cid, "from": start, "to": end,
+                "note": "Command queued. The device will upload on its next poll "
+                        "(usually within ~1 minute)."
+            }), content_type="application/json")
+
         if path.startswith("/api/employee/"):
             emp_id = path.rsplit("/", 1)[-1]
             with closing(db()) as conn:
@@ -341,11 +396,19 @@ class MyServer(BaseHTTPRequestHandler):
         if path in ("/iclock/cdata", "/iclock/cdata.aspx"):
             if self._query().get("options", [""])[0] == "all":
                 sn = self._query().get("SN", ["?"])[0]
+                remember_sn(sn)
                 print(f"\n[INIT] handshake SN={sn}")
                 return self._send(handshake_lines(sn))
             return self._send("OK")
 
+        # Device command poll -- deliver any queued commands (e.g. log re-import).
         if path in ("/iclock/getrequest", "/iclock/getrequest.aspx"):
+            sn = self._query().get("SN", ["?"])[0]
+            remember_sn(sn)
+            cmds = pop_commands(sn)
+            if cmds:
+                print(f"[CMD] -> SN={sn}: {len(cmds)} command(s)")
+                return self._send("\r\n".join(cmds) + "\r\n")
             return self._send("OK")
 
         self._send("Not Found", status=404)
@@ -364,6 +427,7 @@ class MyServer(BaseHTTPRequestHandler):
         body = self.rfile.read(length).decode("utf-8", errors="ignore")
         table = q.get("table", [""])[0].upper()
         sn = q.get("SN", ["?"])[0]
+        remember_sn(sn)
 
         print(f"\n===== CDATA POST SN={sn} table={table or '(none)'} =====")
         if body.strip():

@@ -142,6 +142,9 @@ table.dataTable tbody tr:hover{background:rgba(148,163,184,.06)!important}
     <span><i class="fa-regular fa-calendar"></i> <b id="m-date">--</b></span>
     <span><i class="fa-regular fa-clock"></i> <b id="m-time">--:--:--</b></span>
     <span class="muted">Refreshed <b id="m-refresh">--</b></span>
+    <button id="btn-pull" class="btn btn-sm" title="Ask the device to re-upload all stored attendance logs"
+      style="background:rgba(59,130,246,.15);color:#3B82F6;border:1px solid rgba(59,130,246,.35);border-radius:10px;font-weight:600">
+      <i class="fa-solid fa-cloud-arrow-down"></i> Re-import Logs</button>
   </div>
 </div>
 
@@ -429,6 +432,26 @@ function tick(){
 }
 tick();
 setInterval(tick, 5000);
+
+// Re-import all stored logs from the device
+document.getElementById("btn-pull").addEventListener("click", function(){
+  const btn = this;
+  btn.disabled = true;
+  const old = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Requesting...';
+  fetch("/api/pull-logs").then(r=>r.json()).then(d=>{
+    if(d.ok){
+      alert("Re-import requested for device " + d.sn + " (" + d.from + " to " + d.to + ").\n\n"
+        + "The machine will upload its stored logs on its next poll (~1 min). "
+        + "Watch the dashboard fill in.");
+    } else {
+      alert("Could not request re-import: " + (d.error || "unknown error")
+        + "\n\nThe device must connect to the server at least once first.");
+    }
+  }).catch(()=>alert("Request failed.")).finally(()=>{
+    btn.disabled = false; btn.innerHTML = old;
+  });
+});
 </script>
 </body>
 </html>
